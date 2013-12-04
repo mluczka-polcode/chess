@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en" ng-app>
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" href="{{ asset('bundles/chess/favicon.ico') }}" />
+    <script src="{{ asset('bundles/chess/angular.min.js') }}"></script>
+    <title>Chess - {% block title %}default title{% endblock %}</title>
+</head>
+    <body>
+    {% block body %}
+        <div class="block">
+            {% block content %}{% endblock %}
+        </div>
+    {% endblock %}
+    </body>
+</html>

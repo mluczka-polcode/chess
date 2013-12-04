@@ -1,0 +1,10 @@
+{% extends "AcmeChessBundle::layout.html.twig" %}
+
+{% block title "home page" %}
+
+{% block content %}
+    <h1>Chess - home page</h1>
+    <a href="{{ path('chess_createTable', {'color': 'white'}) }}">create new table (white)</a>
+    <br>
+    <a href="{{ path('chess_createTable', {'color': 'black'}) }}">create new table (black)</a>
+{% endblock %}

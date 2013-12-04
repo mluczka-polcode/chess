@@ -1,0 +1,19 @@
+Acme\ChessBundle\Entity\Game:
+    type: entity
+    table: game
+    id:
+        id:
+            type: integer
+            id: true
+            generator:
+                strategy: AUTO
+    fields:
+        tableId:
+            type: string
+            length: '32'
+        log:
+            type: text
+        status:
+            type: string
+            length: '16'
+    lifecycleCallbacks: {  }
