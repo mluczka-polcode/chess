@@ -41,7 +41,7 @@ class DefaultController extends Controller
         return $this->render('AcmeChessBundle:Default:table.html.twig', array(
             'tableId'  => $tableId,
             'color'    => $color,
-            'position' => chunk_split($game->getPosition(), 8),
+            'position' => $game->getPosition(),
             'log'      => $game->getLog(),
         ));
     }

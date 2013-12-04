@@ -1,0 +1,10 @@
+* { margin: 0; padding: 0; }
+
+html { text-align: center; background: #EEE; }
+body { width: 800px; margin: 0 auto; padding: 20px; text-align: left; background: #FFF; }
+
+#chessboard { margin: 20px auto; border: 2px solid #666; border-collapse: collapse; }
+#chessboard td { width: 50px; height: 50px; text-align: center; vertical-align: middle; border: 1px solid #666; }
+#chessboard tr:nth-child(odd) td:nth-child(even) { background: #CCC; }
+#chessboard tr:nth-child(even) td:nth-child(odd) { background: #CCC; }
+#chessboard td.selected { background: #ADA !important; }

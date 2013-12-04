@@ -1,12 +1,19 @@
 {% extends "AcmeChessBundle::layout.html.twig" %}
 
+{% block htmlAttributes 'ng-app="chessApp"' %}
 {% block title "table" %}
 
 {% block content %}
     <h1>Chess - table</h1>
     <p>tableId: {{ tableId }}</p>
     <p>your color: {{ color }}</p>
-    <p>game position:<br><pre>{{ position }}</pre></p>
+    <table id="chessboard" ng-controller="chessboard">
+        <tr ng-repeat="row in tiles track by $index">
+            <td ng-repeat="tile in row track by $index" ng-click="onfieldclick($index, $parent.$index);">
+                <span ng-bind="tile" ng-if="tile!=' '"></span>
+            </td>
+        </tr>
+    </table>
     <p>game log:<br>{{ log|nl2br }}</p>
     <br>
     <a href="{{ path('chess_startGame', {'tableId': tableId }) }}">start game</a>
