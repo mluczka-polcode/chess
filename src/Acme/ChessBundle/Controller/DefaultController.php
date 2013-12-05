@@ -3,6 +3,7 @@
 namespace Acme\ChessBundle\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use Symfony\Component\HttpFoundation\Response;
 use Acme\ChessBundle\Entity\Game;
 
 class DefaultController extends Controller

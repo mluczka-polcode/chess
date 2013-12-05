@@ -8,3 +8,4 @@ body { width: 800px; margin: 0 auto; padding: 20px; text-align: left; background
 #chessboard tr:nth-child(odd) td:nth-child(even) { background: #CCC; }
 #chessboard tr:nth-child(even) td:nth-child(odd) { background: #CCC; }
 #chessboard td.selected { background: #ADA !important; }
+#chessboard td.avail { background: #DDA !important; }

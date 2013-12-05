@@ -1,6 +1,7 @@
 {% extends "AcmeChessBundle::layout.html.twig" %}
 
 {% block htmlAttributes 'ng-app="chessApp"' %}
+
 {% block title "table" %}
 
 {% block content %}
@@ -8,8 +9,8 @@
     <p>tableId: {{ tableId }}</p>
     <p>your color: {{ color }}</p>
     <table id="chessboard" ng-controller="chessboard">
-        <tr ng-repeat="row in tiles track by $index">
-            <td ng-repeat="tile in row track by $index" ng-click="onfieldclick($index, $parent.$index);">
+        <tr ng-repeat="row in tiles | reverse track by $index">
+            <td ng-repeat="tile in row track by $index" ng-click="onfieldclick($index, 7 - $parent.$index);">
                 <span ng-bind="tile" ng-if="tile!=' '"></span>
             </td>
         </tr>

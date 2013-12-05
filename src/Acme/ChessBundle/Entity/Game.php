@@ -172,6 +172,8 @@ class Game
 
         $fromX = $this->convertNumberToLetter($fromX);
         $toX   = $this->convertNumberToLetter($toX);
+        $fromY += 1;
+        $toY   += 1;
 
         $this->log .= $fromX.$fromY.'-'.$toX.$toY."\n";
     }
@@ -186,7 +188,7 @@ class Game
     private function convertNumberToLetter($number)
     {
         $letters = 'abcdefgh';
-        return $letters[$number-1];
+        return $letters[$number];
     }
 
 }
