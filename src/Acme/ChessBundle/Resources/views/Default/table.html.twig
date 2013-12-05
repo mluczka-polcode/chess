@@ -4,36 +4,37 @@
 
 {% block title "table" %}
 
-{% block js %}
+{% block customJS %}
     <script type="text/javascript">
-        var chessboardTiles = [
-            ['R', 'K', 'B', 'Q', 'X', 'B', 'K', 'R'],
-            ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
-            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-            ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
-            ['r', 'k', 'b', 'q', 'x', 'b', 'k', 'r']
-        ];
+        var chessboardTiles = {{ position | json_encode | raw }};
+        var chessboardLog = {{ log | json_encode | raw }};
         var ajaxUrl = "{{ path('chess_homepage') }}";
         var tableId = "{{ tableId }}";
-        var currentPlayer = "{{ color }}";
+        var playerColor = "{{ color }}";
+        var currentPlayer = "{{ currentPlayer }}";
     </script>
 {% endblock %}
 
 {% block content %}
     <h1>Chess - table</h1>
-    <p>tableId: {{ tableId }}</p>
+    <p>
+        Links to this table:
+        <a href="{{ path('chess_table', {'tableId': tableId, 'color': 'white' }) }}">white</a>,
+        <a href="{{ path('chess_table', {'tableId': tableId, 'color': 'black' }) }}">black</a>.
+        Copy one of them and send to your opponent.
+    </p>
     <p>your color: {{ color }}</p>
     <table id="chessboard" ng-controller="chessboard">
         <tr ng-repeat="row in tiles | reverse track by $index">
             <td ng-repeat="tile in row track by $index" ng-click="onfieldclick($index, 7 - $parent.$index);">
-                <span ng-bind="tile" ng-if="tile!=' '"></span>
+                <span class="tile {% verbatim %}{{ tile }}{% endverbatim %}" ng-if="tile!='_'"></span>
             </td>
         </tr>
     </table>
-    <p>game log:<br>{{ log|nl2br }}</p>
+    <p>current player: <b ng-controller="chessboard" ng-bind="currentPlayer"></b></p>
+    <ol id="chessLog" ng-controller="chessboard">
+        <li ng-repeat="move in log" ng-bind="move"></li>
+    </ol>
     <br>
     <a href="{{ path('chess_startGame', {'tableId': tableId }) }}">start game</a>
 {% endblock %}

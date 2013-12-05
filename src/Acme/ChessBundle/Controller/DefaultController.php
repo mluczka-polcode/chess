@@ -4,6 +4,7 @@ namespace Acme\ChessBundle\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Acme\ChessBundle\Entity\Game;
 
 class DefaultController extends Controller
@@ -42,8 +43,10 @@ class DefaultController extends Controller
         return $this->render('AcmeChessBundle:Default:table.html.twig', array(
             'tableId'  => $tableId,
             'color'    => $color,
-            'position' => $game->getPosition(),
-            'log'      => $game->getLog(),
+            'position' => $game->getPositionAsArray(),
+            'log'      => $game->getLogAsArray(),
+            'status'   => $game->getStatus(),
+            'currentPlayer' => $game->getCurrentPlayer(),
         ));
     }
 
@@ -85,4 +88,27 @@ class DefaultController extends Controller
 
         return new Response('ok');
     }
+
+    public function checkGameStateAction($tableId)
+    {
+        $game = $this->getDoctrine()->getRepository('AcmeChessBundle:Game')->findOneBy(
+            array(
+                'tableId' => $tableId,
+                'status'  => 'in_progress',
+            )
+        );
+
+        if(!$game)
+        {
+            throw $this->createNotFoundException('No game found for tableId '.$tableId);
+        }
+
+        return new JsonResponse(array(
+            'position' => $game->getPositionAsArray(),
+            'log' => $game->getLogAsArray(),
+            'status' => $game->getStatus(),
+            'currentPlayer' => $game->getCurrentPlayer(),
+        ));
+    }
+
 }

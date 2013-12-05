@@ -1,5 +1,7 @@
 'use strict';
 
+var checkStateTimer = null;
+
 var chessApp = angular.module('chessApp', []);
 
 chessApp.filter('reverse', function() {
@@ -9,17 +11,25 @@ chessApp.filter('reverse', function() {
 });
 
 chessApp.controller('chessboard', function($scope, $http) {
+
     var BOARD_SIZE = 8;
+    var CHECK_GAMESTATE_TIMEOUT = 2000;
 
     $scope.tiles = chessboardTiles;
+    $scope.log = chessboardLog;
+    $scope.currentPlayer = currentPlayer;
 
     $scope.onfieldclick = function(x, y) {
-//         console.info(x + ', ' + y);
+        if(currentPlayer != playerColor)
+        {
+            return false;
+        }
+
         if(hasSelectedTile() && isMovePossible(x, y))
         {
             moveSelectedTile(x, y);
         }
-        else if(isMyTile(x, y) && tileCanMove(x, y))
+        else if(isMyTile(x, y) && tileCanMove(x, y) && (x != selectedTile.x || y != selectedTile.y))
         {
             selectTile(x, y);
         }
@@ -53,35 +63,46 @@ chessApp.controller('chessboard', function($scope, $http) {
         return functions[tile](x, y);
     };
 
-    var getPawnMoves = function(x, y) {
+    var getPawnMoves = function(x, y, mode) {
+        if(!mode)
+        {
+            mode = 'all';
+        }
+
         var result = [];
-        var modifier = currentPlayer == 'white' ? 1 : -1;
+        var modifier = playerColor == 'white' ? 1 : -1;
 
-        // move
-        if(isEmptyField(x, y + modifier))
+        if(mode == 'move' || mode == 'all')
         {
-            result.push([x, y + modifier]);
-            if((currentPlayer == 'white' && y == 1) && isEmptyField(x, 3))
+            if(isEmptyField(x, y + modifier))
             {
-                result.push([x, 3]);
+                result.push([x, y + modifier]);
+
+                if((playerColor == 'white' && y == 1) && isEmptyField(x, 3))
+                {
+                    result.push([x, 3]);
+                }
+                else if((playerColor == 'black' && y == 6) && isEmptyField(x, 4))
+                {
+                    result.push([x, 4]);
+                }
             }
-            else if((currentPlayer == 'black' && y == 6) && isEmptyField(x, 4))
+        }
+
+        if(mode == 'beat' || mode == 'all')
+        {
+            if(isEnemy(x - 1, y + modifier))
             {
-                result.push([x, 4]);
+                result.push([x - 1, y + modifier]);
             }
-        }
+            if(isEnemy(x + 1, y + modifier))
+            {
+                result.push([x + 1, y + modifier]);
+            }
 
-        // beat
-        if(isEnemy(x - 1, y + modifier))
-        {
-            result.push([x - 1, y + modifier]);
+            // TODO: bicie w przelocie
+            // ...
         }
-        if(isEnemy(x + 1, y + modifier))
-        {
-            result.push([x + 1, y + modifier]);
-        }
-
-        // TODO: bicie w przelocie
 
         return result;
     };
@@ -148,6 +169,7 @@ chessApp.controller('chessboard', function($scope, $http) {
     var getKingMoves = function(x, y) {
         var result = [];
 
+        var toX, toY;
         for(var i = -1; i <= 1; i++)
         {
             for(var j = -1; j <= 1; j++)
@@ -199,7 +221,7 @@ chessApp.controller('chessboard', function($scope, $http) {
         {
             return false;
         }
-        return($scope.tiles[y][x] == ' ' ? true : false);
+        return($scope.tiles[y][x] == '_' ? true : false);
     };
 
     var isEnemy = function(x, y) {
@@ -211,7 +233,19 @@ chessApp.controller('chessboard', function($scope, $http) {
     };
 
     var isAttacked = function(x, y) {
-        //...
+        // TODO: implement
+        return false;
+    };
+
+    var canBeat = function(tile, x, y) {
+        var possibleMoves = getPossibleMoves(tile.x, tile.y, 'beat');
+        for(var i = 0; i < possibleMoves.length; i++)
+        {
+            if(possibleMoves[i].x == x && possibleMoves[i].y == y)
+            {
+                return true;
+            }
+        }
         return false;
     };
 
@@ -269,17 +303,17 @@ chessApp.controller('chessboard', function($scope, $http) {
         }
 
         var tile = $scope.tiles[y][x];
-        if(tile == ' ')
+        if(tile == '_')
         {
             return false;
         }
 
-        if(currentPlayer == 'white' && tile.toLowerCase() === tile)
+        if(playerColor == 'white' && tile.toLowerCase() === tile)
         {
             return false;
         }
 
-        if(currentPlayer == 'black' && tile.toUpperCase() === tile)
+        if(playerColor == 'black' && tile.toUpperCase() === tile)
         {
             return false;
         }
@@ -308,12 +342,48 @@ chessApp.controller('chessboard', function($scope, $http) {
                     return;
                 }
                 $scope.tiles[y][x] = $scope.tiles[selectedTile.y][selectedTile.x];
-                $scope.tiles[selectedTile.y][selectedTile.x] = ' ';
+                $scope.tiles[selectedTile.y][selectedTile.x] = '_';
                 unselectTile();
+                switchPlayer();
             }).
             error(function(data, status, headers, config) {
                 alert(data);
             });
     };
 
+    var switchPlayer = function() {
+        if(currentPlayer == 'black')
+        {
+            currentPlayer = 'white';
+        }
+        else
+        {
+            currentPlayer = 'black';
+        }
+//         console.info(currentPlayer);
+        $scope.currentPlayer = currentPlayer;
+    };
+
+    var checkIfOpponentMoved = function() {
+//         console.info('checking gamestate: ' + playerColor);
+        var url = ajaxUrl + 'checkGameState/' + tableId;
+        $http({'method': 'GET', 'url': url}).
+            success(function(data, status, headers, config) {
+                if(data.currentPlayer != currentPlayer)
+                {
+                    switchPlayer();
+                }
+                $scope.tiles = data.position;
+                $scope.log = data.log;
+            }).
+            error(function(data, status, headers, config) {
+                alert(data);
+            });
+
+        clearTimeout(checkStateTimer);
+        checkStateTimer = setTimeout(checkIfOpponentMoved, CHECK_GAMESTATE_TIMEOUT);
+    };
+
+    clearTimeout(checkStateTimer);
+    checkStateTimer = setTimeout(checkIfOpponentMoved, CHECK_GAMESTATE_TIMEOUT);
 });

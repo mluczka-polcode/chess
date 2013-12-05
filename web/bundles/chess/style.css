@@ -9,3 +9,21 @@ body { width: 800px; margin: 0 auto; padding: 20px; text-align: left; background
 #chessboard tr:nth-child(even) td:nth-child(odd) { background: #CCC; }
 #chessboard td.selected { background: #ADA !important; }
 #chessboard td.avail { background: #DDA !important; }
+
+#chessboard .tile { display: block; width: 50px; height: 50px; background: url(TileSet.png); }
+
+#chessboard .tile.P { background-position: -239px -144px; }
+#chessboard .tile.K { background-position:  -96px -144px; }
+#chessboard .tile.B { background-position: -142px -144px; }
+#chessboard .tile.R { background-position: -190px -144px; }
+#chessboard .tile.Q { background-position:  -46px -144px; }
+#chessboard .tile.X { background-position:    2px -144px; }
+
+#chessboard .tile.p { background-position: -238px -49px; }
+#chessboard .tile.k { background-position:  -96px -49px; }
+#chessboard .tile.b { background-position: -142px -49px; }
+#chessboard .tile.r { background-position: -188px -49px; }
+#chessboard .tile.q { background-position:  -46px -49px; }
+#chessboard .tile.x { background-position:    2px -47px; }
+
+#chessLog { width: 150px; margin: 0 auto; font-family: monospace; }

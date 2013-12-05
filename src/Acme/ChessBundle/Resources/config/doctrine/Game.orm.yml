@@ -11,6 +11,9 @@ Acme\ChessBundle\Entity\Game:
         tableId:
             type: string
             length: '32'
+        position:
+            type: string
+            length: '70'
         log:
             type: text
         status:

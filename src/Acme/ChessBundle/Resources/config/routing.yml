@@ -17,3 +17,7 @@ chess_startGame:
 chess_moveTile:
     pattern:  /chess/moveTile/{tableId}/{fromX},{fromY}-{toX},{toY}
     defaults: { _controller: AcmeChessBundle:Default:moveTile }
+
+chess_checkGameState:
+    pattern:  /chess/checkGameState/{tableId}
+    defaults: { _controller: AcmeChessBundle:Default:checkGameState }

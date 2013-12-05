@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <link rel="icon" href="{{ asset('bundles/chess/favicon.ico') }}" />
     <link rel="stylesheet" type="text/css" href="{{ asset('bundles/chess/style.css') }}" />
-    {% block js %}{% endblock %}
+    {% block customJS %}{% endblock %}
     <script src="{{ asset('bundles/chess/angular.min.js') }}"></script>
     <script src="{{ asset('bundles/chess/app.js') }}"></script>
     <title>Chess - {% block title %}default title{% endblock %}</title>
