@@ -4,22 +4,8 @@
     <meta charset="utf-8">
     <link rel="icon" href="{{ asset('bundles/chess/favicon.ico') }}" />
     <link rel="stylesheet" type="text/css" href="{{ asset('bundles/chess/style.css') }}" />
+    {% block js %}{% endblock %}
     <script src="{{ asset('bundles/chess/angular.min.js') }}"></script>
-    <script type="text/javascript">
-        var chessboardTiles = [
-            ['R', 'K', 'B', 'Q', 'X', 'B', 'K', 'R'],
-            ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
-            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-            ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
-            ['r', 'k', 'b', 'q', 'x', 'b', 'k', 'r']
-        ];
-        var ajaxUrl = "{{ path('chess_homepage') }}";
-        var tableId = "{{ tableId }}";
-        var currentPlayer = "{{ color }}";
-    </script>
     <script src="{{ asset('bundles/chess/app.js') }}"></script>
     <title>Chess - {% block title %}default title{% endblock %}</title>
 </head>

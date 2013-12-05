@@ -4,6 +4,24 @@
 
 {% block title "table" %}
 
+{% block js %}
+    <script type="text/javascript">
+        var chessboardTiles = [
+            ['R', 'K', 'B', 'Q', 'X', 'B', 'K', 'R'],
+            ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+            ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+            ['r', 'k', 'b', 'q', 'x', 'b', 'k', 'r']
+        ];
+        var ajaxUrl = "{{ path('chess_homepage') }}";
+        var tableId = "{{ tableId }}";
+        var currentPlayer = "{{ color }}";
+    </script>
+{% endblock %}
+
 {% block content %}
     <h1>Chess - table</h1>
     <p>tableId: {{ tableId }}</p>
