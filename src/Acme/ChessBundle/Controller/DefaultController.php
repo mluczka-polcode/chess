@@ -46,6 +46,7 @@ class DefaultController extends Controller
             'position' => $game->getPositionAsArray($color),
             'log'      => $game->getLogAsArray(),
             'status'   => $game->getStatus(),
+            'lastMove' => $game->getLastMove($color),
             'currentPlayer' => $game->getCurrentPlayer(),
         ));
     }
@@ -68,19 +69,10 @@ class DefaultController extends Controller
 
     public function moveTileAction($tableId, $fromX, $fromY, $toX, $toY)
     {
-        $game = $this->getDoctrine()->getRepository('AcmeChessBundle:Game')->findOneBy(
-            array(
-                'tableId' => $tableId,
-                'status'  => 'in_progress',
-            )
-        );
+        $game = $this->getGame($tableId);
 
-        if(!$game)
-        {
-            throw $this->createNotFoundException('No game found for tableId '.$tableId);
-        }
-
-        $game->moveTile($fromX, $fromY, $toX, $toY);
+        $game->setMoveCoords($fromX, $fromY, $toX, $toY);
+        $game->moveTile();
 
         $em = $this->getDoctrine()->getManager();
         $em->persist($game);
@@ -91,6 +83,26 @@ class DefaultController extends Controller
 
     public function checkGameStateAction($tableId, $color)
     {
+        $game = $this->getGame($tableId);
+
+        return new JsonResponse(array(
+            'position' => $game->getPositionAsArray($color),
+            'log'      => $game->getLogAsArray(),
+            'status'   => $game->getStatus(),
+            'lastMove' => $game->getLastMove($color),
+            'currentPlayer' => $game->getCurrentPlayer(),
+        ));
+    }
+
+    public function proposeTieAction($tableId, $color)
+    {
+        $game = $this->getGame($tableId);
+
+//         $game->
+    }
+
+    private function getGame($tableId)
+    {
         $game = $this->getDoctrine()->getRepository('AcmeChessBundle:Game')->findOneBy(
             array(
                 'tableId' => $tableId,
@@ -100,15 +112,9 @@ class DefaultController extends Controller
 
         if(!$game)
         {
-            throw $this->createNotFoundException('No game found for tableId '.$tableId);
+            throw $this->createNotFoundException('No game found for tableId ' . $tableId);
         }
 
-        return new JsonResponse(array(
-            'position' => $game->getPositionAsArray($color),
-            'log' => $game->getLogAsArray(),
-            'status' => $game->getStatus(),
-            'currentPlayer' => $game->getCurrentPlayer(),
-        ));
+        return $game;
     }
-
 }

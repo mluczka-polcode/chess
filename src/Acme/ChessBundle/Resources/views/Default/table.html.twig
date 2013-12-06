@@ -6,12 +6,15 @@
 
 {% block customJS %}
     <script type="text/javascript">
-        var chessboardTiles = {{ position | json_encode | raw }};
-        var chessboardLog = {{ log | json_encode | raw }};
-        var ajaxUrl = "{{ path('chess_homepage') }}";
-        var tableId = "{{ tableId }}";
-        var playerColor = "{{ color }}";
-        var currentPlayer = "{{ currentPlayer }}";
+        var chessConfig = {
+            chessboardTiles : {{ position | json_encode | raw }},
+            chessboardLog : {{ log | json_encode | raw }},
+            ajaxUrl : "{{ path('chess_homepage') }}",
+            tableId : "{{ tableId }}",
+            playerColor : "{{ color }}",
+            lastMove : {{ lastMove | json_encode | raw }},
+            currentPlayer : "{{ currentPlayer }}"
+        };
     </script>
     <script src="{{ asset('bundles/chess/angular.min.js') }}"></script>
     <script src="{{ asset('bundles/chess/app.js') }}"></script>

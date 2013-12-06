@@ -1,18 +1,30 @@
 'use strict';
 
-var ChessGame = function(chessboardTiles, chessboardLog, currentPlayer, playerColor) {
+var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlayer, playerColor) {
     var self = this;
 
     var BOARD_SIZE = 8;
     var CHECK_GAMESTATE_TIMEOUT = 2000;
 
-    this.tiles = chessboardTiles;
-    this.log = chessboardLog;
-    this.currentPlayer = currentPlayer;
-    this.playerColor = playerColor;
-    this.$http = null;
+    var checkStateTimer = null;
 
-    this.onfieldclick = function(x, y) {
+    self.tiles = config.chessboardTiles;
+    self.log = config.chessboardLog;
+    self.currentPlayer = config.currentPlayer;
+    self.playerColor = config.playerColor;
+    self.ajaxUrl = config.ajaxUrl;
+    self.tableId = config.tableId;
+    self.lastMove = config.lastMove;
+
+    self.$http = null;
+
+    self.init = function() {
+        updateSelection();
+        clearTimeout(checkStateTimer);
+        checkStateTimer = setTimeout(checkGameState, CHECK_GAMESTATE_TIMEOUT);
+    };
+
+    self.onfieldclick = function(x, y) {
         if(self.currentPlayer != self.playerColor)
         {
             return false;
@@ -39,7 +51,62 @@ var ChessGame = function(chessboardTiles, chessboardLog, currentPlayer, playerCo
 
     var possibleMoves = [];
 
+    var knightMoves = [
+        {'x':  1, 'y':  2},
+        {'x':  2, 'y':  1},
+        {'x':  2, 'y': -1},
+        {'x':  1, 'y': -2},
+        {'x': -1, 'y': -2},
+        {'x': -2, 'y': -1},
+        {'x': -2, 'y':  1},
+        {'x': -1, 'y':  2}
+    ];
+
+    var diagonalMoves = [
+        {'x': 1,  'y':  1},
+        {'x': 1,  'y': -1},
+        {'x': -1, 'y':  1},
+        {'x': -1, 'y': -1}
+    ];
+
+    var straightMoves = [
+        {'x':  1, 'y':  0},
+        {'x': -1, 'y':  0},
+        {'x':  0, 'y':  1},
+        {'x':  0, 'y': -1}
+    ]
+
     var checkStateTimer = null;
+
+    var updateSelection = function() {
+        var cells = document.getElementById('chessboard').getElementsByTagName('td');
+        for(var i = 0; i < cells.length; i++)
+        {
+            removeClass(cells[i], 'moved');
+            removeClass(cells[i], 'checked');
+        }
+
+        if(self.lastMove)
+        {
+            var cellFrom = getCellByCoords(self.lastMove.fromX, self.lastMove.fromY);
+            addClass(cellFrom, 'moved');
+
+            var cellTo = getCellByCoords(self.lastMove.toX, self.lastMove.toY);
+            addClass(cellTo, 'moved');
+        }
+
+        for(var y = 0; y < self.tiles.length; y++)
+        {
+            for(var x = 0; x < self.tiles[y].length; x++)
+            {
+                if(isMyTile(x, y) && isKing(x, y) && isAttacked(x, y))
+                {
+                    addClass(getCellByCoords(x, y), 'checked')
+                    return;
+                }
+            }
+        }
+    };
 
     var getPossibleMoves = function(x, y) {
         var functions = {
@@ -100,60 +167,28 @@ var ChessGame = function(chessboardTiles, chessboardLog, currentPlayer, playerCo
     var getKnightMoves = function(x, y) {
         var result = [];
 
-        var allowedMoves = [
-            {'x':  1, 'y':  2},
-            {'x':  2, 'y':  1},
-            {'x':  2, 'y': -1},
-            {'x':  1, 'y': -2},
-            {'x': -1, 'y': -2},
-            {'x': -2, 'y': -1},
-            {'x': -2, 'y':  1},
-            {'x': -1, 'y':  2}
-        ];
-
-        var toX, toY;
-        for(var i = 0; i < allowedMoves.length; i++)
-        {
-            toX = x + allowedMoves[i].x;
-            toY = y + allowedMoves[i].y;
+        knightMoves.forEach(function(move){
+            var toX = x + move.x;
+            var toY = y + move.y;
             if(canMoveOrBeat(toX, toY))
             {
                 result.push([toX, toY]);
             }
-        }
+        });
 
         return result;
     };
 
     var getBishopMoves = function(x, y) {
-        return getPossibleLongMoves(x, y, [
-            {'x': 1,  'y':  1},
-            {'x': 1,  'y': -1},
-            {'x': -1, 'y':  1},
-            {'x': -1, 'y': -1}
-        ]);
+        return getLongMoves(x, y, diagonalMoves);
     };
 
     var getRookMoves = function(x, y) {
-        return getPossibleLongMoves(x, y, [
-            {'x':  1,  'y':  0},
-            {'x': -1,  'y': 0},
-            {'x':  0, 'y':  1},
-            {'x':  0, 'y': -1}
-        ]);
+        return getLongMoves(x, y, straightMoves);
     };
 
     var getQueenMoves = function(x, y) {
-        return getPossibleLongMoves(x, y, [
-            {'x':  1, 'y':  1},
-            {'x':  1, 'y':  0},
-            {'x':  1, 'y': -1},
-            {'x':  0, 'y': -1},
-            {'x': -1, 'y': -1},
-            {'x': -1, 'y':  0},
-            {'x': -1, 'y':  1},
-            {'x':  0, 'y':  1}
-        ]);
+        return getLongMoves(x, y, straightMoves.concat(diagonalMoves));
     };
 
     var getKingMoves = function(x, y) {
@@ -176,25 +211,25 @@ var ChessGame = function(chessboardTiles, chessboardLog, currentPlayer, playerCo
         return result;
     };
 
-    var getPossibleLongMoves = function(x, y, directions) {
+    var getLongMoves = function(x, y, directions) {
         var result = [];
-        for(var i = 0; i < directions.length; i++)
-        {
+
+        directions.forEach(function(move) {
             var j = 1;
-            var toX = x + (j * directions[i].x);
-            var toY = y + (j * directions[i].y);
+            var toX = x + (j * move.x);
+            var toY = y + (j * move.y);
             while(isEmptyField(toX, toY))
             {
                 result.push([toX, toY]);
                 j += 1;
-                toX = x + (j * directions[i].x);
-                toY = y + (j * directions[i].y);
+                toX = x + (j * move.x);
+                toY = y + (j * move.y);
             }
             if(isEnemy(toX, toY))
             {
                 result.push([toX, toY]);
             }
-        }
+        });
         return result;
     };
 
@@ -223,8 +258,103 @@ var ChessGame = function(chessboardTiles, chessboardLog, currentPlayer, playerCo
     };
 
     var isAttacked = function(x, y) {
-        // TODO: implement
+
+        // pawn
+        if(isEnemy(x - 1, y + 1) && isPawn(x - 1, y + 1))
+        {
+            return true;
+        }
+        if(isEnemy(x + 1, y + 1) && isPawn(x + 1, y + 1))
+        {
+            return true;
+        }
+
+        // knight
+        for(var i = 0; i < knightMoves.length; i++)
+        {
+            var toX = x + knightMoves[i].x;
+            var toY = y + knightMoves[i].y;
+            if(isEnemy(toX, toY) && isKnight(toX, toY))
+            {
+                return true;
+            }
+        }
+
+        // bishop or queen
+        for(var i = 0; i < diagonalMoves.length; i++)
+        {
+            var j = 1;
+            var toX = x + (j * diagonalMoves[i].x);
+            var toY = y + (j * diagonalMoves[i].y);
+            while(isEmptyField(toX, toY))
+            {
+                j += 1;
+                toX = x + (j * diagonalMoves[i].x);
+                toY = y + (j * diagonalMoves[i].y);
+            }
+            if(isEnemy(toX, toY) && (isBishop(toX, toY) || isQueen(toX, toY)))
+            {
+                return true;
+            }
+        }
+
+        // rook or queen
+        for(var i = 0; i < straightMoves.length; i++)
+        {
+            var j = 1;
+            var toX = x + (j * straightMoves[i].x);
+            var toY = y + (j * straightMoves[i].y);
+            while(isEmptyField(toX, toY))
+            {
+                j += 1;
+                toX = x + (j * straightMoves[i].x);
+                toY = y + (j * straightMoves[i].y);
+            }
+            if(isEnemy(toX, toY) && (isRook(toX, toY) || isQueen(toX, toY)))
+            {
+                return true;
+            }
+        }
+
+        // king
+        for(var i = -1; i <= 1; i++)
+        {
+            for(var j = -1; j <= 1; j++)
+            {
+                var toX = x + i;
+                var toY = y + j;
+                if(isEnemy(toX, toY) && isKing(toX, toY))
+                {
+                    return true;
+                }
+            }
+        }
+
         return false;
+    };
+
+    var isPawn = function(x, y) {
+        return(validCoords(x, y) && self.tiles[y][x].toLowerCase() == 'p');
+    };
+
+    var isKnight = function(x, y) {
+        return(validCoords(x, y) && self.tiles[y][x].toLowerCase() == 'k');
+    };
+
+    var isBishop = function(x, y) {
+        return(validCoords(x, y) && self.tiles[y][x].toLowerCase() == 'b');
+    };
+
+    var isRook = function(x, y) {
+        return(validCoords(x, y) && self.tiles[y][x].toLowerCase() == 'r');
+    };
+
+    var isQueen = function(x, y) {
+        return(validCoords(x, y) && self.tiles[y][x].toLowerCase() == 'q');
+    };
+
+    var isKing = function(x, y) {
+        return(validCoords(x, y) && self.tiles[y][x].toLowerCase() == 'x');
     };
 
     var canBeat = function(tile, x, y) {
@@ -247,13 +377,12 @@ var ChessGame = function(chessboardTiles, chessboardLog, currentPlayer, playerCo
         selectedTile.x = x;
         selectedTile.y = y;
         var cell = getCellByCoords(x, y);
-        cell.className = 'selected';
+        addClass(cell, 'selected');
 
-        for(var i = 0; i < possibleMoves.length; i++)
-        {
-            cell = getCellByCoords(possibleMoves[i][0], possibleMoves[i][1]);
-            cell.className = 'avail';
-        }
+        possibleMoves.forEach(function(move) {
+            cell = getCellByCoords(move[0], move[1]);
+            addClass(cell, 'avail');
+        });
     };
 
     var unselectTile = function() {
@@ -269,6 +398,7 @@ var ChessGame = function(chessboardTiles, chessboardLog, currentPlayer, playerCo
         {
             cells[i].className = '';
         }
+        updateSelection();
     };
 
     var hasSelectedTile = function() {
@@ -323,7 +453,7 @@ var ChessGame = function(chessboardTiles, chessboardLog, currentPlayer, playerCo
     };
 
     var moveSelectedTile = function(x, y) {
-        var url = ajaxUrl + 'moveTile/' + tableId + '/' + selectedTile.x + ',' + selectedTile.y + '-' + x + ',' + y;
+        var url = self.ajaxUrl + 'moveTile/' + self.tableId + '/' + selectedTile.x + ',' + selectedTile.y + '-' + x + ',' + y;
         self.$http({'method': 'GET', 'url': url}).
             success(function(data, status, headers, config) {
                 if(data != 'ok')
@@ -331,10 +461,10 @@ var ChessGame = function(chessboardTiles, chessboardLog, currentPlayer, playerCo
                     alert(data);
                     return;
                 }
-                self.tiles[y][x] = self.tiles[selectedTile.y][selectedTile.x];
-                self.tiles[selectedTile.y][selectedTile.x] = '_';
+                clearTimeout(checkStateTimer);
                 unselectTile();
                 switchPlayer();
+                checkGameState();
             }).
             error(function(data, status, headers, config) {
                 alert(data);
@@ -352,26 +482,36 @@ var ChessGame = function(chessboardTiles, chessboardLog, currentPlayer, playerCo
         }
     };
 
-    var checkIfOpponentMoved = function() {
+    var checkGameState = function() {
 //         console.info('checking gamestate: ' + self.playerColor);
-        var url = ajaxUrl + 'checkGameState/' + tableId + '/' + self.playerColor;
+        var url = self.ajaxUrl + 'checkGameState/' + self.tableId + '/' + self.playerColor;
         self.$http({'method': 'GET', 'url': url}).
             success(function(data, status, headers, config) {
                 if(data.currentPlayer != self.currentPlayer)
                 {
-                    switchPlayer();
+                    self.currentPlayer = data.currentPlayer;
                 }
                 self.tiles = data.position;
                 self.log = data.log;
+                self.lastMove = data.lastMove;
+                updateSelection();
             }).
             error(function(data, status, headers, config) {
                 alert(data);
             });
 
         clearTimeout(checkStateTimer);
-        checkStateTimer = setTimeout(checkIfOpponentMoved, CHECK_GAMESTATE_TIMEOUT);
+        checkStateTimer = setTimeout(checkGameState, CHECK_GAMESTATE_TIMEOUT);
     };
 
-    clearTimeout(checkStateTimer);
-    checkStateTimer = setTimeout(checkIfOpponentMoved, CHECK_GAMESTATE_TIMEOUT);
+    var addClass = function(element, className) {
+        if(element.className.indexOf(className) === -1)
+        {
+            element.className += ' ' + className;
+        }
+    };
+
+    var removeClass = function(element, className) {
+        element.className = element.className.replace(className, '');
+    };
 };

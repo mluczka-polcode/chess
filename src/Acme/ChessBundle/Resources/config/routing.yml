@@ -21,3 +21,7 @@ chess_moveTile:
 chess_checkGameState:
     pattern:  /chess/checkGameState/{tableId}/{color}
     defaults: { _controller: AcmeChessBundle:Default:checkGameState }
+
+chess_proposeTie:
+    pattern:  /chess/proposeTie/{tableId}/{color}
+    defaults: { _controller: AcmeChessBundle:Default:proposeTie }

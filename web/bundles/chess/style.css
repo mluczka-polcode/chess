@@ -7,8 +7,10 @@ body { width: 800px; margin: 0 auto; padding: 20px; text-align: left; background
 #chessboard td { width: 50px; height: 50px; text-align: center; vertical-align: middle; border: 1px solid #666; }
 #chessboard tr:nth-child(odd) td:nth-child(even) { background: #CCC; }
 #chessboard tr:nth-child(even) td:nth-child(odd) { background: #CCC; }
-#chessboard td.selected { background: #ADA !important; }
-#chessboard td.avail { background: #DDA !important; }
+#chessboard td.moved  { background: #DDA !important; }
+#chessboard td.checked  { background: #EAA !important; }
+#chessboard td.selected { background: #0C0 !important; }
+#chessboard td.avail { background: #ADA !important; }
 
 #chessboard .tile { display: block; width: 50px; height: 50px; background: url(TileSet.png); }
 

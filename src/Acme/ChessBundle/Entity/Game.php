@@ -20,7 +20,12 @@ class Game
         'tie',
     );
 
-    private $kingAttacked = false;
+    private $columnLetters = 'abcdefgh';
+
+    /**
+     * @var integer
+     */
+    private $fromX = null, $fromY = null, $toX = null, $toY = null;
 
     /**
      * @var integer
@@ -94,7 +99,7 @@ class Game
             {
                 $row = implode('', $row);
             }
-            $position = implode('', $position);
+            $position = implode("\n", $position);
         }
 
         $this->position = $position;
@@ -145,7 +150,7 @@ class Game
     {
         if(!in_array($status, $this->statusValues))
         {
-            throw new Exception('Invalid game status: '.$status);
+            throw new \Exception('Invalid game status: ' . $status);
         }
 
         $this->status = $status;
@@ -165,16 +170,7 @@ class Game
 
     public function getStartPosition()
     {
-       return(
-            'RKBQXBKR'
-           .'PPPPPPPP'
-           .'________'
-           .'________'
-           .'________'
-           .'________'
-           .'pppppppp'
-           .'rkbqxbkr'
-       );
+       return "RKBQXBKR\nPPPPPPPP\n________\n________\n________\n________\npppppppp\nrkbqxbkr";
     }
 
     public function getPositionAsArray($player = null)
@@ -186,7 +182,7 @@ class Game
 
         $result = array();
 
-        $position = explode("\n", trim(chunk_split($this->position, self::BOARD_SIZE, "\n")));
+        $position = explode("\n", trim(str_replace("\r", '', $this->position)));
         foreach($position as $row)
         {
             if($player == self::PLAYER_BLACK)
@@ -210,7 +206,7 @@ class Game
         $log = explode("\n", str_replace("\r", '', trim($this->log)));
         for($i = 0; $i < count($log); $i += 2)
         {
-            $result[] = $log[$i].(!empty($log[$i+1]) ? ' '.$log[$i+1] : '');
+            $result[] = $log[$i] . (!empty($log[$i+1]) ? ' ' . $log[$i+1] : '');
         }
         return $result;
     }
@@ -233,66 +229,160 @@ class Game
         }
     }
 
-    public function moveTile($fromX, $fromY, $toX, $toY)
+    public function getLastMove($player)
     {
-        if($this->getCurrentPlayer() == self::PLAYER_BLACK)
+        if($this->log == '')
         {
-            list($fromX, $fromY, $toX, $toY) = $this->reverseCoords($fromX, $fromY, $toX, $toY);
+            return null;
         }
 
-        if(!$this->isValidMove($fromX, $fromY, $toX, $toY))
+        $log = substr($this->log, strrpos(rtrim($this->log, "\n"), "\n"));
+        if(strpos($log, 'O-O')!==false)
         {
-            throw new Exception('Invalid move!');
+            // TODO: castling
+            return array(
+                //...
+            );
         }
 
-        $position = $this->getPositionAsArray();
-        $tile = $position[$fromY][$fromX];
-//         if($tile == 'P' && $toY == self::BOARD_SIZE - 1)
-//         {
-//             $tile = 'Q';
-//         }
-//         elseif($tile == 'p' && $toY == 0)
-//         {
-//             $tile = 'q';
-//         }
-        $position[$toY][$toX] = $tile;
-        $position[$fromY][$fromX] = '_';
-        $this->setPosition($position);
+        $delimiter = strpos($log, '-')===false ? ':' : '-';
+        $log = explode($delimiter, $log);
 
-        if($this->ownKingAttacked())
+        $posStart = substr($log[0], -2);
+        $fromX = $this->convertLetterToNumber($posStart[0]);
+        $fromY = $posStart[1] - 1;
+
+        $posEnd = substr($log[1], 0, 2);
+        $toX = $this->convertLetterToNumber($posEnd[0]);
+        $toY = $posEnd[1] - 1;
+
+        if($player == self::PLAYER_BLACK)
         {
-            throw new Exception('Invalid move!');
+            $fromX = (self::BOARD_SIZE - 1) - $fromX;
+            $fromY = (self::BOARD_SIZE - 1) - $fromY;
+            $toX   = (self::BOARD_SIZE - 1) - $toX;
+            $toY   = (self::BOARD_SIZE - 1) - $toY;
         }
 
-        if($this->enemyKingAttacked())
-        {
-            $this->kingAttacked = true;
-        }
-
-        $this->addMoveToLog($fromX, $fromY, $toX, $toY);
-    }
-
-    private function reverseCoords($fromX, $fromY, $toX, $toY)
-    {
         return array(
-            (BOARD_SIZE - 1) - $fromX,
-            (BOARD_SIZE - 1) - $fromY,
-            (BOARD_SIZE - 1) - $toX,
-            (BOARD_SIZE - 1) - $toY,
+            'fromX' => $fromX,
+            'fromY' => $fromY,
+            'toX' => $toX,
+            'toY' => $toY,
         );
     }
 
-    private function addMoveToLog($fromX, $fromY, $toX, $toY)
+    public function setMoveCoords($fromX, $fromY, $toX, $toY)
     {
-        $fromX = $this->convertNumberToLetter($fromX);
-        $toX   = $this->convertNumberToLetter($toX);
-        $fromY += 1;
-        $toY   += 1;
+        foreach(array($fromX, $fromY, $toX, $toY) as $coord)
+        {
+            if(!preg_match('/\d/', $coord) || $coord < 0 || $coord >= self::BOARD_SIZE)
+            {
+                throw new \Exception('Invalid move coords!');
+            }
+        }
 
-        $this->log .= $fromX.$fromY.'-'.$toX.$toY."\n";
+        if($this->getCurrentPlayer() == self::PLAYER_BLACK)
+        {
+            $fromX = (self::BOARD_SIZE - 1) - $fromX;
+            $fromY = (self::BOARD_SIZE - 1) - $fromY;
+            $toX   = (self::BOARD_SIZE - 1) - $toX;
+            $toY   = (self::BOARD_SIZE - 1) - $toY;
+        }
+
+        $this->fromX = $fromX;
+        $this->fromY = $fromY;
+        $this->toX   = $toX;
+        $this->toY   = $toY;
     }
 
-    private function isValidMove($fromX, $fromY, $toX, $toY)
+    public function moveTile()
+    {
+        if(!$this->isValidMove())
+        {
+            throw new \Exception('Invalid move!');
+        }
+
+        $moveLog = $this->getLogForMove();
+
+        $this->updatePosition();
+
+        $this->log .= $moveLog;
+    }
+
+    private function getLogForMove()
+    {
+        $log = '';
+
+        $castling = $this->getCastlingType();
+        if($castling == 'long')
+        {
+            $log .= 'O-O-O';
+        }
+        elseif($castling == 'short')
+        {
+            $log .= 'O-O';
+        }
+        else // no castling
+        {
+            // tile name
+            $position = $this->getPositionAsArray(self::PLAYER_WHITE);
+            $tile = $position[$this->fromY][$this->fromX];
+            if(strtolower($tile) != 'p')
+            {
+                $log .= strtoupper($tile);
+            }
+
+            // source field
+            $log .= $this->convertNumberToLetter($this->fromX) . ($this->fromY + 1);
+
+            // move or beat
+            $log .= $position[$this->toY][$this->toX] == '_' ? '-' : ':';
+
+            // destination field
+            $log .= $this->convertNumberToLetter($this->toX) . ($this->toY + 1);
+
+            // przemiana
+            if(($tile == 'p' && $this->toY == 0) || ($tile == 'P' && $this->toY == self::BOARD_SIZE - 1))
+            {
+                $log .= 'Q';
+            }
+        }
+
+        // check or mate
+        if($this->enemyKingAttacked())
+        {
+            $log .= $this->isCheckmate() ? 'x' : '+';
+        }
+
+        $log .= "\n";
+
+        return $log;
+    }
+
+    private function getCastlingType()
+    {
+        // TODO: implement
+        return false;
+    }
+
+    private function updatePosition()
+    {
+        $position = $this->getPositionAsArray(self::PLAYER_WHITE);
+        $tile = $position[$this->fromY][$this->fromX];
+
+        if(strtolower($tile) == 'p' && in_array($this->toY, array(0, self::BOARD_SIZE - 1)))
+        {
+            $tile = $this->getCurrentPlayer() == self::PLAYER_WHITE ? 'Q' : 'q';
+        }
+
+        $position[$this->toY][$this->toX] = $tile;
+        $position[$this->fromY][$this->fromX] = '_';
+
+        $this->setPosition($position);
+    }
+
+    private function isValidMove()
     {
         // TODO: implement
         return true;
@@ -310,10 +400,20 @@ class Game
         return false;
     }
 
+    private function isCheckmate()
+    {
+        // TODO: implement
+        return false;
+    }
+
     private function convertNumberToLetter($number)
     {
-        $letters = 'abcdefgh';
-        return $letters[$number];
+        return $this->columnLetters[$number];
+    }
+
+    private function convertLetterToNumber($letter)
+    {
+        return strpos($this->columnLetters, $letter);
     }
 
 }

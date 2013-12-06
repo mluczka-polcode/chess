@@ -1,7 +1,5 @@
 'use strict';
 
-var checkStateTimer = null;
-
 var chessApp = angular.module('chessApp', []);
 
 chessApp.filter('reverse', function() {
@@ -11,10 +9,11 @@ chessApp.filter('reverse', function() {
 });
 
 chessApp.factory('game', function() {
-    return new ChessGame(chessboardTiles, chessboardLog, currentPlayer, playerColor);
+    return new ChessGame(chessConfig);
 });
 
 chessApp.controller('chessboard', function($scope, $http, game) {
     $scope.game = game;
     $scope.game.$http = $http;
+    setTimeout($scope.game.init, 100);
 });
