@@ -19,5 +19,5 @@ chess_moveTile:
     defaults: { _controller: AcmeChessBundle:Default:moveTile }
 
 chess_checkGameState:
-    pattern:  /chess/checkGameState/{tableId}
+    pattern:  /chess/checkGameState/{tableId}/{color}
     defaults: { _controller: AcmeChessBundle:Default:checkGameState }

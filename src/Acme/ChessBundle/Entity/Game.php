@@ -10,6 +10,8 @@ use Doctrine\ORM\Mapping as ORM;
 class Game
 {
     const BOARD_SIZE = 8;
+    const PLAYER_WHITE = 'white';
+    const PLAYER_BLACK = 'black';
 
     private $statusValues = array(
         'in_progress',
@@ -175,14 +177,28 @@ class Game
        );
     }
 
-    public function getPositionAsArray()
+    public function getPositionAsArray($player = null)
     {
+        if(!$player)
+        {
+            $player = $this->getCurrentPlayer();
+        }
+
         $result = array();
 
         $position = explode("\n", trim(chunk_split($this->position, self::BOARD_SIZE, "\n")));
         foreach($position as $row)
         {
+            if($player == self::PLAYER_BLACK)
+            {
+                $row = strrev($row);
+            }
             $result[] = str_split($row);
+        }
+
+        if($player == self::PLAYER_BLACK)
+        {
+            $result = array_reverse($result);
         }
 
         return $result;
@@ -203,22 +219,27 @@ class Game
     {
         if(empty($this->log))
         {
-            return 'white';
+            return self::PLAYER_WHITE;
         }
 
         $log = explode("\n", trim($this->log));
         if(count($log) % 2)
         {
-            return 'black';
+            return self::PLAYER_BLACK;
         }
         else
         {
-            return 'white';
+            return self::PLAYER_WHITE;
         }
     }
 
     public function moveTile($fromX, $fromY, $toX, $toY)
     {
+        if($this->getCurrentPlayer() == self::PLAYER_BLACK)
+        {
+            list($fromX, $fromY, $toX, $toY) = $this->reverseCoords($fromX, $fromY, $toX, $toY);
+        }
+
         if(!$this->isValidMove($fromX, $fromY, $toX, $toY))
         {
             throw new Exception('Invalid move!');
@@ -248,6 +269,21 @@ class Game
             $this->kingAttacked = true;
         }
 
+        $this->addMoveToLog($fromX, $fromY, $toX, $toY);
+    }
+
+    private function reverseCoords($fromX, $fromY, $toX, $toY)
+    {
+        return array(
+            (BOARD_SIZE - 1) - $fromX,
+            (BOARD_SIZE - 1) - $fromY,
+            (BOARD_SIZE - 1) - $toX,
+            (BOARD_SIZE - 1) - $toY,
+        );
+    }
+
+    private function addMoveToLog($fromX, $fromY, $toX, $toY)
+    {
         $fromX = $this->convertNumberToLetter($fromX);
         $toX   = $this->convertNumberToLetter($toX);
         $fromY += 1;

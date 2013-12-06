@@ -43,7 +43,7 @@ class DefaultController extends Controller
         return $this->render('AcmeChessBundle:Default:table.html.twig', array(
             'tableId'  => $tableId,
             'color'    => $color,
-            'position' => $game->getPositionAsArray(),
+            'position' => $game->getPositionAsArray($color),
             'log'      => $game->getLogAsArray(),
             'status'   => $game->getStatus(),
             'currentPlayer' => $game->getCurrentPlayer(),
@@ -89,7 +89,7 @@ class DefaultController extends Controller
         return new Response('ok');
     }
 
-    public function checkGameStateAction($tableId)
+    public function checkGameStateAction($tableId, $color)
     {
         $game = $this->getDoctrine()->getRepository('AcmeChessBundle:Game')->findOneBy(
             array(
@@ -104,7 +104,7 @@ class DefaultController extends Controller
         }
 
         return new JsonResponse(array(
-            'position' => $game->getPositionAsArray(),
+            'position' => $game->getPositionAsArray($color),
             'log' => $game->getLogAsArray(),
             'status' => $game->getStatus(),
             'currentPlayer' => $game->getCurrentPlayer(),

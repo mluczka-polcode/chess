@@ -65,34 +65,29 @@ var ChessGame = function(chessboardTiles, chessboardLog, currentPlayer, playerCo
         }
 
         var result = [];
-        var modifier = self.playerColor == 'white' ? 1 : -1;
 
         if(mode == 'move' || mode == 'all')
         {
-            if(isEmptyField(x, y + modifier))
+            if(isEmptyField(x, y + 1))
             {
-                result.push([x, y + modifier]);
+                result.push([x, y + 1]);
 
-                if((self.playerColor == 'white' && y == 1) && isEmptyField(x, 3))
+                if(y == 1 && isEmptyField(x, y + 2))
                 {
-                    result.push([x, 3]);
-                }
-                else if((self.playerColor == 'black' && y == 6) && isEmptyField(x, 4))
-                {
-                    result.push([x, 4]);
+                    result.push([x, y + 2]);
                 }
             }
         }
 
         if(mode == 'beat' || mode == 'all')
         {
-            if(isEnemy(x - 1, y + modifier))
+            if(isEnemy(x - 1, y + 1))
             {
-                result.push([x - 1, y + modifier]);
+                result.push([x - 1, y + 1]);
             }
-            if(isEnemy(x + 1, y + modifier))
+            if(isEnemy(x + 1, y + 1))
             {
-                result.push([x + 1, y + modifier]);
+                result.push([x + 1, y + 1]);
             }
 
             // TODO: bicie w przelocie
@@ -359,7 +354,7 @@ var ChessGame = function(chessboardTiles, chessboardLog, currentPlayer, playerCo
 
     var checkIfOpponentMoved = function() {
 //         console.info('checking gamestate: ' + self.playerColor);
-        var url = ajaxUrl + 'checkGameState/' + tableId;
+        var url = ajaxUrl + 'checkGameState/' + tableId + '/' + self.playerColor;
         self.$http({'method': 'GET', 'url': url}).
             success(function(data, status, headers, config) {
                 if(data.currentPlayer != self.currentPlayer)
