@@ -8,15 +8,15 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
 
     var checkStateTimer = null;
 
-    self.tiles = config.chessboardTiles;
-    self.log = config.chessboardLog;
+    self.tiles = config.position;
+    self.log = config.log;
     self.currentPlayer = config.currentPlayer;
-    self.playerColor = config.playerColor;
-    self.ajaxUrl = config.ajaxUrl;
+    self.playerColor = config.color;
     self.tableId = config.tableId;
     self.lastMove = config.lastMove;
     self.status = config.status;
     self.tieProposal = config.tieProposal;
+    self.castlings = config.castlings;
 
     self.$http = null;
 
@@ -140,11 +140,11 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
 
         if(mode == 'move' || mode == 'all')
         {
-            if(isEmptyField(x, y + 1))
+            if(isEmpty(x, y + 1))
             {
                 result.push([x, y + 1]);
 
-                if(y == 1 && isEmptyField(x, y + 2))
+                if(y == 1 && isEmpty(x, y + 2))
                 {
                     result.push([x, y + 2]);
                 }
@@ -213,6 +213,16 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
             }
         }
 
+        if(isCastlingPossible('short'))
+        {
+            result.push([x + 2, y]);
+        }
+
+        if(isCastlingPossible('long'))
+        {
+            result.push([x - 2, y]);
+        }
+
         return result;
     };
 
@@ -223,7 +233,7 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
             var j = 1;
             var toX = x + (j * move.x);
             var toY = y + (j * move.y);
-            while(isEmptyField(toX, toY))
+            while(isEmpty(toX, toY))
             {
                 result.push([toX, toY]);
                 j += 1;
@@ -238,6 +248,46 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
         return result;
     };
 
+    var isCastlingPossible = function(direction) {
+        if(self.castlings[self.playerColor] != direction && self.castlings[self.playerColor] != 'both')
+        {
+console.info('hmm');
+            return false;
+        }
+
+        var kingX = self.playerColor == 'white' ? 4 : 3;
+        var y = 0;
+
+        if(isAttacked(kingX, y))
+        {
+console.info('he?', kingX, y);
+            return false;
+        }
+
+        var xMin, xMax;
+        if(direction == 'short')
+        {
+            xMin = 5;
+            xMax = 6;
+        }
+        else
+        {
+            xMin = 1;
+            xMax = 3;
+        }
+
+        for(var x = xMin; x <= xMax; x++)
+        {
+            if(isAttacked(x, y) || !isEmpty(x, y))
+            {
+console.info('attacked or not empty', x, y);
+                return false;
+            }
+        }
+
+        return true;
+    };
+
     var validCoords = function(x, y) {
         if(x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE)
         {
@@ -246,7 +296,7 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
         return true;
     };
 
-    var isEmptyField = function(x, y) {
+    var isEmpty = function(x, y) {
         if(!validCoords(x, y))
         {
             return false;
@@ -255,11 +305,11 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
     };
 
     var isEnemy = function(x, y) {
-        return(validCoords(x, y) && !isEmptyField(x, y) && !isMyTile(x, y));
+        return(validCoords(x, y) && !isEmpty(x, y) && !isMyTile(x, y));
     };
 
     var canMoveOrBeat = function(x, y) {
-        return(validCoords(x, y) && (isEmptyField(x, y) || isEnemy(x, y)));
+        return(validCoords(x, y) && (isEmpty(x, y) || isEnemy(x, y)));
     };
 
     var isAttacked = function(x, y) {
@@ -291,7 +341,7 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
             var j = 1;
             var toX = x + (j * diagonalMoves[i].x);
             var toY = y + (j * diagonalMoves[i].y);
-            while(isEmptyField(toX, toY))
+            while(isEmpty(toX, toY))
             {
                 j += 1;
                 toX = x + (j * diagonalMoves[i].x);
@@ -309,7 +359,7 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
             var j = 1;
             var toX = x + (j * straightMoves[i].x);
             var toY = y + (j * straightMoves[i].y);
-            while(isEmptyField(toX, toY))
+            while(isEmpty(toX, toY))
             {
                 j += 1;
                 toX = x + (j * straightMoves[i].x);
@@ -458,18 +508,18 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
     };
 
     var moveSelectedTile = function(x, y) {
-        var url = self.ajaxUrl + 'moveTile/' + self.tableId + '/' + selectedTile.x + ',' + selectedTile.y + '-' + x + ',' + y;
+        var url = ajaxUrl + 'moveTile/' + self.tableId + '/' + selectedTile.x + ',' + selectedTile.y + '-' + x + ',' + y;
         self.$http({'method': 'GET', 'url': url}).
             success(function(data, status, headers, config) {
-                if(data != 'ok')
-                {
-                    alert(data);
-                    return;
-                }
                 clearTimeout(checkStateTimer);
                 unselectTile();
                 switchPlayer();
-                checkGameState();
+                self.tiles = data.position;
+                self.log = data.log;
+                self.lastMove = data.lastMove;
+                self.status = data.status;
+                updateSelection();
+                checkStateTimer = setTimeout(checkGameState, CHECK_GAMESTATE_TIMEOUT);
             }).
             error(function(data, status, headers, config) {
                 alert(data);
@@ -494,7 +544,7 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
         }
 
 //         console.info('checking gamestate: ' + self.playerColor);
-        var url = self.ajaxUrl + 'checkGameState/' + self.tableId + '/' + self.playerColor;
+        var url = ajaxUrl + 'checkGameState/' + self.tableId + '/' + self.playerColor;
         self.$http({'method': 'GET', 'url': url}).
             success(function(data, status, headers, config) {
                 if(data.currentPlayer != self.currentPlayer)

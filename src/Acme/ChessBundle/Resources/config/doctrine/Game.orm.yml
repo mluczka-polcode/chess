@@ -16,7 +16,7 @@ Acme\ChessBundle\Entity\Game:
             length: '70'
         log:
             type: text
-        castling:
+        castlings:
             type: string
             length: '32'
         tieProposal:

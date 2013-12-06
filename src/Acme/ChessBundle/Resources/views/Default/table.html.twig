@@ -6,17 +6,8 @@
 
 {% block customJS %}
     <script type="text/javascript">
-        var chessConfig = {
-            'chessboardTiles' : {{ position | json_encode | raw }},
-            'chessboardLog'   : {{ log | json_encode | raw }},
-            'ajaxUrl'         : "{{ path('chess_homepage') }}",
-            'tableId'         : "{{ tableId }}",
-            'playerColor'     : "{{ color }}",
-            'lastMove'        : {{ lastMove | json_encode | raw }},
-            'currentPlayer'   : "{{ currentPlayer }}",
-            'tieProposal'     : "{{ tieProposal }}",
-            'status'          : "{{ status }}"
-        };
+        var ajaxUrl = "{{ path('chess_homepage') }}";
+        var chessGamestate = {{ gamestate | json_encode | raw }};
     </script>
     <script src="{{ asset('bundles/chess/angular.min.js') }}"></script>
     <script src="{{ asset('bundles/chess/app.js') }}"></script>
@@ -28,11 +19,11 @@
     <h1>Chess - table</h1>
     <p>
         Links to this table:
-        <a href="{{ path('chess_table', {'tableId': tableId, 'color': 'white' }) }}">white</a>,
-        <a href="{{ path('chess_table', {'tableId': tableId, 'color': 'black' }) }}">black</a>.
+        <a href="{{ path('chess_table', {'tableId': gamestate.tableId, 'color': 'white' }) }}">white</a>,
+        <a href="{{ path('chess_table', {'tableId': gamestate.tableId, 'color': 'black' }) }}">black</a>.
         Copy one of them and send to your opponent.
     </p>
-    <p>your color: {{ color }}</p>
+    <p>your color: {{ gamestate.color }}</p>
     <table id="chessboard">
         <tr ng-repeat="row in game.tiles | reverse track by $index">
             <td ng-repeat="tile in row track by $index" ng-click="game.onfieldclick($index, 7 - $parent.$index);">
@@ -43,7 +34,8 @@
     <p>current player: <b ng-bind="game.currentPlayer"></b></p>
     <p>game status: <b ng-bind="game.status"></b></p>
     <p>tie: <b ng-bind="game.tieProposal"></b></p>
-    <!--<a href="{{ path('chess_proposeTie', {'tableId': tableId, 'player': color }) }}">propose a tie</a>-->
+    <p>castlings:<br /> white: <b ng-bind="game.castlings.white"></b>, black: <b ng-bind="game.castlings.black"></b></p>
+    <!--<a href="{{ path('chess_proposeTie', {'tableId': gamestate.tableId, 'player': gamestate.color }) }}">propose a tie</a>-->
     <ol id="chessLog">
         <li ng-repeat="move in game.log" ng-bind="move"></li>
     </ol>

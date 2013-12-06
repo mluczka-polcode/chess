@@ -42,14 +42,7 @@ class DefaultController extends Controller
         }
 
         return $this->render('AcmeChessBundle:Default:table.html.twig', array(
-            'tableId'       => $tableId,
-            'color'         => $color,
-            'position'      => $game->getPositionAsArray($color),
-            'log'           => $game->getLogAsArray(),
-            'status'        => $game->getStatus(),
-            'lastMove'      => $game->getLastMove($color),
-            'tieProposal'   => $game->getTieProposal(),
-            'currentPlayer' => $game->getCurrentPlayer(),
+            'gamestate' => $game->getGameState($color),
         ));
     }
 
@@ -58,25 +51,19 @@ class DefaultController extends Controller
         $game = $this->getGame($tableId);
 
         $game->setMoveCoords($fromX, $fromY, $toX, $toY);
+        $player = $game->getCurrentPlayer();
+
         $game->moveTile();
 
         $this->save($game);
 
-        return new Response('ok');
+        return new JsonResponse($game->getGameState($player));
     }
 
     public function checkGameStateAction($tableId, $player)
     {
         $game = $this->getGame($tableId);
-
-        return new JsonResponse(array(
-            'position'      => $game->getPositionAsArray($player),
-            'log'           => $game->getLogAsArray(),
-            'status'        => $game->getStatus(),
-            'lastMove'      => $game->getLastMove($player),
-            'tieProposal'   => $game->getTieProposal(),
-            'currentPlayer' => $game->getCurrentPlayer(),
-        ));
+        return new JsonResponse($game->getGameState($player));
     }
 
     public function proposeTieAction($tableId, $player)

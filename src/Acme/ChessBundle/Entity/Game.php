@@ -50,7 +50,7 @@ class Game
     /**
      * @var string
      */
-    private $castling = 'white both, black both';
+    private $castlings = 'white both, black both';
 
     /**
      * @var string
@@ -151,26 +151,26 @@ class Game
     }
 
     /**
-     * Set castling
+     * Set castlings
      *
-     * @param string $castling
+     * @param string $castlings
      * @return Game
      */
-    public function setCastling($castling)
+    public function setCastlings($castlings)
     {
-        $this->castling = $castling;
+        $this->castlings = $castlings;
 
         return $this;
     }
 
     /**
-     * Get castling
+     * Get castlings
      *
      * @return string
      */
-    public function getCastling()
+    public function getCastlings()
     {
-        return $this->castling;
+        return $this->castlings;
     }
 
     /**
@@ -230,6 +230,21 @@ class Game
        return "RKBQXBKR\nPPPPPPPP\n________\n________\n________\n________\npppppppp\nrkbqxbkr";
     }
 
+    public function getGameState($player)
+    {
+        return array(
+            'tableId'       => $this->tableId,
+            'color'         => $player,
+            'position'      => $this->getPositionAsArray($player),
+            'log'           => $this->getLogAsArray(),
+            'status'        => $this->getStatus(),
+            'lastMove'      => $this->getLastMove($player),
+            'castlings'     => $this->getCastlingsAsArray(),
+            'tieProposal'   => $this->getTieProposal(),
+            'currentPlayer' => $this->getCurrentPlayer(),
+        );
+    }
+
     public function getPositionAsArray($player = null)
     {
         if(!$player)
@@ -268,9 +283,26 @@ class Game
         return $result;
     }
 
+    private function getCastlingsAsArray()
+    {
+        $result = array(
+            'white' => 'both',
+            'black' => 'both',
+        );
+
+        $castlings = explode(',', $this->castlings);
+        foreach($castlings as $row)
+        {
+            list($color, $status) = explode(' ', trim($row));
+            $result[$color] = $status;
+        }
+
+        return $result;
+    }
+
     public function getCurrentPlayer()
     {
-        if(empty($this->log))
+        if(trim($this->log)=='')
         {
             return self::PLAYER_WHITE;
         }
@@ -435,6 +467,17 @@ class Game
 
         $position[$this->toY][$this->toX] = $tile;
         $position[$this->fromY][$this->fromX] = '_';
+
+        if(strtolower($tile) == 'x' && $this->toX - $this->fromX == 2)
+        {
+            $position[$this->toY][$this->toX - 1] = $position[$this->toY][$this->toX + 1];
+            $position[$this->toY][$this->toX + 1] = '_';
+        }
+        elseif(strtolower($tile) == 'x' && $this->toX - $this->fromX == -2)
+        {
+            $position[$this->toY][$this->toX + 1] = $position[$this->toY][$this->toX - 2];
+            $position[$this->toY][$this->toX - 2] = '_';
+        }
 
         $this->setPosition($position);
     }

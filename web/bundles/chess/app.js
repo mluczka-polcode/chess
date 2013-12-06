@@ -9,7 +9,7 @@ chessApp.filter('reverse', function() {
 });
 
 chessApp.factory('game', function() {
-    return new ChessGame(chessConfig);
+    return new ChessGame(chessGamestate);
 });
 
 chessApp.controller('chessboard', function($scope, $http, game) {
