@@ -13,9 +13,13 @@
         var playerColor = "{{ color }}";
         var currentPlayer = "{{ currentPlayer }}";
     </script>
+    <script src="{{ asset('bundles/chess/angular.min.js') }}"></script>
+    <script src="{{ asset('bundles/chess/app.js') }}"></script>
+    <script src="{{ asset('bundles/chess/game.js') }}"></script>
 {% endblock %}
 
 {% block content %}
+<div ng-controller="chessboard">
     <h1>Chess - table</h1>
     <p>
         Links to this table:
@@ -24,17 +28,18 @@
         Copy one of them and send to your opponent.
     </p>
     <p>your color: {{ color }}</p>
-    <table id="chessboard" ng-controller="chessboard">
-        <tr ng-repeat="row in tiles | reverse track by $index">
-            <td ng-repeat="tile in row track by $index" ng-click="onfieldclick($index, 7 - $parent.$index);">
+    <table id="chessboard">
+        <tr ng-repeat="row in game.tiles | reverse track by $index">
+            <td ng-repeat="tile in row track by $index" ng-click="game.onfieldclick($index, 7 - $parent.$index);">
                 <span class="tile {% verbatim %}{{ tile }}{% endverbatim %}" ng-if="tile!='_'"></span>
             </td>
         </tr>
     </table>
-    <p>current player: <b ng-controller="chessboard" ng-bind="currentPlayer"></b></p>
-    <ol id="chessLog" ng-controller="chessboard">
-        <li ng-repeat="move in log" ng-bind="move"></li>
+    <p>current player: <b ng-bind="game.currentPlayer"></b></p>
+    <ol id="chessLog">
+        <li ng-repeat="move in game.log" ng-bind="move"></li>
     </ol>
     <br>
     <a href="{{ path('chess_startGame', {'tableId': tableId }) }}">start game</a>
+</div>
 {% endblock %}
