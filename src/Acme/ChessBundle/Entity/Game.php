@@ -50,6 +50,16 @@ class Game
     /**
      * @var string
      */
+    private $castling = 'white both, black both';
+
+    /**
+     * @var string
+     */
+    private $tieProposal = '';
+
+    /**
+     * @var string
+     */
     private $status = 'in_progress';
 
     /**
@@ -133,11 +143,58 @@ class Game
     /**
      * Get log
      *
-     * @return string 
+     * @return string
      */
     public function getLog()
     {
         return $this->log;
+    }
+
+    /**
+     * Set castling
+     *
+     * @param string $castling
+     * @return Game
+     */
+    public function setCastling($castling)
+    {
+        $this->castling = $castling;
+
+        return $this;
+    }
+
+    /**
+     * Get castling
+     *
+     * @return string
+     */
+    public function getCastling()
+    {
+        return $this->castling;
+    }
+
+    /**
+     * Set tieProposal
+     *
+     * @param string $player
+     * @param string $status
+     * @return Game
+     */
+    public function setTieProposal($player, $status = 'proposed')
+    {
+        $this->tieProposal = $player . ' ' . $status;
+
+        return $this;
+    }
+
+    /**
+     * Get tieProposal
+     *
+     * @return string
+     */
+    public function getTieProposal()
+    {
+        return $this->tieProposal;
     }
 
     /**

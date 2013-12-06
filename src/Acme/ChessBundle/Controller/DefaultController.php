@@ -29,7 +29,6 @@ class DefaultController extends Controller
         $game = $this->getDoctrine()->getRepository('AcmeChessBundle:Game')->findOneBy(
             array(
                 'tableId' => $tableId,
-                'status'  => 'in_progress',
             )
         );
 
@@ -38,33 +37,20 @@ class DefaultController extends Controller
             $game = new Game();
             $game->setTableId($tableId);
             $game->setPosition($game->getStartPosition());
+
+            $this->save($game);
         }
 
         return $this->render('AcmeChessBundle:Default:table.html.twig', array(
-            'tableId'  => $tableId,
-            'color'    => $color,
-            'position' => $game->getPositionAsArray($color),
-            'log'      => $game->getLogAsArray(),
-            'status'   => $game->getStatus(),
-            'lastMove' => $game->getLastMove($color),
+            'tableId'       => $tableId,
+            'color'         => $color,
+            'position'      => $game->getPositionAsArray($color),
+            'log'           => $game->getLogAsArray(),
+            'status'        => $game->getStatus(),
+            'lastMove'      => $game->getLastMove($color),
+            'tieProposal'   => $game->getTieProposal(),
             'currentPlayer' => $game->getCurrentPlayer(),
         ));
-    }
-
-    public function startGameAction($tableId)
-    {
-        $game = new Game();
-        $game->setTableId($tableId);
-        $game->setPosition($game->getStartPosition());
-
-        $em = $this->getDoctrine()->getManager();
-        $em->persist($game);
-        $em->flush();
-
-        return $this->redirect($this->generateUrl('chess_table', array(
-            'tableId' => $tableId,
-            'color'   => 'white',
-        )));
     }
 
     public function moveTileAction($tableId, $fromX, $fromY, $toX, $toY)
@@ -74,31 +60,33 @@ class DefaultController extends Controller
         $game->setMoveCoords($fromX, $fromY, $toX, $toY);
         $game->moveTile();
 
-        $em = $this->getDoctrine()->getManager();
-        $em->persist($game);
-        $em->flush();
+        $this->save($game);
 
         return new Response('ok');
     }
 
-    public function checkGameStateAction($tableId, $color)
+    public function checkGameStateAction($tableId, $player)
     {
         $game = $this->getGame($tableId);
 
         return new JsonResponse(array(
-            'position' => $game->getPositionAsArray($color),
-            'log'      => $game->getLogAsArray(),
-            'status'   => $game->getStatus(),
-            'lastMove' => $game->getLastMove($color),
+            'position'      => $game->getPositionAsArray($player),
+            'log'           => $game->getLogAsArray(),
+            'status'        => $game->getStatus(),
+            'lastMove'      => $game->getLastMove($player),
+            'tieProposal'   => $game->getTieProposal(),
             'currentPlayer' => $game->getCurrentPlayer(),
         ));
     }
 
-    public function proposeTieAction($tableId, $color)
+    public function proposeTieAction($tableId, $player)
     {
         $game = $this->getGame($tableId);
+        $game->setTieProposal($player);
 
-//         $game->
+        $this->save($game);
+
+        return new Response('ok');
     }
 
     private function getGame($tableId)
@@ -106,7 +94,6 @@ class DefaultController extends Controller
         $game = $this->getDoctrine()->getRepository('AcmeChessBundle:Game')->findOneBy(
             array(
                 'tableId' => $tableId,
-                'status'  => 'in_progress',
             )
         );
 
@@ -116,5 +103,12 @@ class DefaultController extends Controller
         }
 
         return $game;
+    }
+
+    private function save($entity)
+    {
+        $em = $this->getDoctrine()->getManager();
+        $em->persist($entity);
+        $em->flush();
     }
 }

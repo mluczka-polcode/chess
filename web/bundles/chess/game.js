@@ -15,17 +15,22 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
     self.ajaxUrl = config.ajaxUrl;
     self.tableId = config.tableId;
     self.lastMove = config.lastMove;
+    self.status = config.status;
+    self.tieProposal = config.tieProposal;
 
     self.$http = null;
 
     self.init = function() {
         updateSelection();
         clearTimeout(checkStateTimer);
-        checkStateTimer = setTimeout(checkGameState, CHECK_GAMESTATE_TIMEOUT);
+        if(self.status == 'in_progress')
+        {
+            checkStateTimer = setTimeout(checkGameState, CHECK_GAMESTATE_TIMEOUT);
+        }
     };
 
     self.onfieldclick = function(x, y) {
-        if(self.currentPlayer != self.playerColor)
+        if(self.currentPlayer != self.playerColor || self.status != 'in_progress')
         {
             return false;
         }
@@ -483,6 +488,11 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
     };
 
     var checkGameState = function() {
+        if(self.status != 'in_progress')
+        {
+            return false;
+        }
+
 //         console.info('checking gamestate: ' + self.playerColor);
         var url = self.ajaxUrl + 'checkGameState/' + self.tableId + '/' + self.playerColor;
         self.$http({'method': 'GET', 'url': url}).
@@ -494,6 +504,7 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
                 self.tiles = data.position;
                 self.log = data.log;
                 self.lastMove = data.lastMove;
+                self.status = data.status;
                 updateSelection();
             }).
             error(function(data, status, headers, config) {

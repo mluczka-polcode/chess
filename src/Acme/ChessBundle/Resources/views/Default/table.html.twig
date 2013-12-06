@@ -7,13 +7,15 @@
 {% block customJS %}
     <script type="text/javascript">
         var chessConfig = {
-            chessboardTiles : {{ position | json_encode | raw }},
-            chessboardLog : {{ log | json_encode | raw }},
-            ajaxUrl : "{{ path('chess_homepage') }}",
-            tableId : "{{ tableId }}",
-            playerColor : "{{ color }}",
-            lastMove : {{ lastMove | json_encode | raw }},
-            currentPlayer : "{{ currentPlayer }}"
+            'chessboardTiles' : {{ position | json_encode | raw }},
+            'chessboardLog'   : {{ log | json_encode | raw }},
+            'ajaxUrl'         : "{{ path('chess_homepage') }}",
+            'tableId'         : "{{ tableId }}",
+            'playerColor'     : "{{ color }}",
+            'lastMove'        : {{ lastMove | json_encode | raw }},
+            'currentPlayer'   : "{{ currentPlayer }}",
+            'tieProposal'     : "{{ tieProposal }}",
+            'status'          : "{{ status }}"
         };
     </script>
     <script src="{{ asset('bundles/chess/angular.min.js') }}"></script>
@@ -39,10 +41,11 @@
         </tr>
     </table>
     <p>current player: <b ng-bind="game.currentPlayer"></b></p>
+    <p>game status: <b ng-bind="game.status"></b></p>
+    <p>tie: <b ng-bind="game.tieProposal"></b></p>
+    <!--<a href="{{ path('chess_proposeTie', {'tableId': tableId, 'player': color }) }}">propose a tie</a>-->
     <ol id="chessLog">
         <li ng-repeat="move in game.log" ng-bind="move"></li>
     </ol>
-    <br>
-    <a href="{{ path('chess_startGame', {'tableId': tableId }) }}">start game</a>
 </div>
 {% endblock %}
