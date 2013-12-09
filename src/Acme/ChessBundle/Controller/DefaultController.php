@@ -24,7 +24,7 @@ class DefaultController extends Controller
         )));
     }
 
-    public function tableAction($tableId, $color)
+    public function tableAction($tableId, $player)
     {
         $game = $this->getDoctrine()->getRepository('AcmeChessBundle:Game')->findOneBy(
             array(
@@ -36,13 +36,12 @@ class DefaultController extends Controller
         {
             $game = new Game();
             $game->setTableId($tableId);
-            $game->setPosition($game->getStartPosition());
 
             $this->save($game);
         }
 
         return $this->render('AcmeChessBundle:Default:table.html.twig', array(
-            'gamestate' => $game->getGameState($color),
+            'gamestate' => $game->getGameState($player),
         ));
     }
 
@@ -50,12 +49,12 @@ class DefaultController extends Controller
     {
         $game = $this->getGame($tableId);
 
-        $game->setMoveCoords($fromX, $fromY, $toX, $toY);
         $player = $game->getCurrentPlayer();
 
+        $game->setMoveCoords($fromX, $fromY, $toX, $toY);
         $game->moveTile();
 
-        $this->save($game);
+//         $this->save($game);
 
         return new JsonResponse($game->getGameState($player));
     }

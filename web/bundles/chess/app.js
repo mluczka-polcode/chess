@@ -15,5 +15,4 @@ chessApp.factory('game', function() {
 chessApp.controller('chessboard', function($scope, $http, game) {
     $scope.game = game;
     $scope.game.$http = $http;
-    setTimeout($scope.game.init, 100);
 });

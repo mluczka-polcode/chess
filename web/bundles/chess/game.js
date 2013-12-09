@@ -1,6 +1,6 @@
 'use strict';
 
-var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlayer, playerColor) {
+var ChessGame = function(gameState) {
     var self = this;
 
     var BOARD_SIZE = 8;
@@ -8,29 +8,20 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
 
     var checkStateTimer = null;
 
-    self.tiles = config.position;
-    self.log = config.log;
-    self.currentPlayer = config.currentPlayer;
-    self.playerColor = config.color;
-    self.tableId = config.tableId;
-    self.lastMove = config.lastMove;
-    self.status = config.status;
-    self.tieProposal = config.tieProposal;
-    self.castlings = config.castlings;
+    self.state = gameState;
 
     self.$http = null;
 
     self.init = function() {
-        updateSelection();
         clearTimeout(checkStateTimer);
-        if(self.status == 'in_progress')
+        if(self.state.status == 'in_progress')
         {
             checkStateTimer = setTimeout(checkGameState, CHECK_GAMESTATE_TIMEOUT);
         }
     };
 
     self.onfieldclick = function(x, y) {
-        if(self.currentPlayer != self.playerColor || self.status != 'in_progress')
+        if(self.state.currentPlayer != self.state.color || self.state.status != 'in_progress')
         {
             return false;
         }
@@ -47,6 +38,40 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
         {
             unselectTile();
         }
+    };
+
+    self.getFieldClass = function(x, y) {
+        var classes = [];
+
+        if(x == self.state.lastMove.fromX && y == self.state.lastMove.fromY)
+        {
+            classes.push('moved');
+        }
+        else if(x == self.state.lastMove.toX && y == self.state.lastMove.toY)
+        {
+            classes.push('moved');
+        }
+
+        if(isMyTile(x, y) && isKing(x, y) && isAttacked(x, y))
+        {
+            classes.push('checked');
+        }
+
+        if(x == selectedTile.x && y == selectedTile.y)
+        {
+            classes.push('selected');
+        }
+        else if(possibleMoves)
+        {
+            possibleMoves.forEach(function(move) {
+                if(x == move.x && y == move.y)
+                {
+                    classes.push('avail');
+                }
+            });
+        }
+
+        return classes.join(' ');
     };
 
     var selectedTile = {
@@ -83,209 +108,12 @@ var ChessGame = function(config) { //chessboardTiles, chessboardLog, currentPlay
 
     var checkStateTimer = null;
 
-    var updateSelection = function() {
-        var cells = document.getElementById('chessboard').getElementsByTagName('td');
-        for(var i = 0; i < cells.length; i++)
-        {
-            removeClass(cells[i], 'moved');
-            removeClass(cells[i], 'checked');
-        }
-
-        if(self.lastMove)
-        {
-            var cellFrom = getCellByCoords(self.lastMove.fromX, self.lastMove.fromY);
-            addClass(cellFrom, 'moved');
-
-            var cellTo = getCellByCoords(self.lastMove.toX, self.lastMove.toY);
-            addClass(cellTo, 'moved');
-        }
-
-        for(var y = 0; y < self.tiles.length; y++)
-        {
-            for(var x = 0; x < self.tiles[y].length; x++)
-            {
-                if(isMyTile(x, y) && isKing(x, y) && isAttacked(x, y))
-                {
-                    addClass(getCellByCoords(x, y), 'checked')
-                    return;
-                }
-            }
-        }
-    };
-
     var getPossibleMoves = function(x, y) {
-        var functions = {
-            'p': getPawnMoves,
-            'k': getKnightMoves,
-            'b': getBishopMoves,
-            'r': getRookMoves,
-            'q': getQueenMoves,
-            'x': getKingMoves
-        };
-        var tile = self.tiles[y][x].toLowerCase();
-        if(typeof(functions[tile]) != 'function')
+        if(!self.state.possibleMoves[x])
         {
-            return false;
+            return [];
         }
-        return functions[tile](x, y);
-    };
-
-    var getPawnMoves = function(x, y, mode) {
-        if(!mode)
-        {
-            mode = 'all';
-        }
-
-        var result = [];
-
-        if(mode == 'move' || mode == 'all')
-        {
-            if(isEmpty(x, y + 1))
-            {
-                result.push([x, y + 1]);
-
-                if(y == 1 && isEmpty(x, y + 2))
-                {
-                    result.push([x, y + 2]);
-                }
-            }
-        }
-
-        if(mode == 'beat' || mode == 'all')
-        {
-            if(isEnemy(x - 1, y + 1))
-            {
-                result.push([x - 1, y + 1]);
-            }
-            if(isEnemy(x + 1, y + 1))
-            {
-                result.push([x + 1, y + 1]);
-            }
-
-            // TODO: bicie w przelocie
-            // ...
-        }
-
-        return result;
-    };
-
-    var getKnightMoves = function(x, y) {
-        var result = [];
-
-        knightMoves.forEach(function(move){
-            var toX = x + move.x;
-            var toY = y + move.y;
-            if(canMoveOrBeat(toX, toY))
-            {
-                result.push([toX, toY]);
-            }
-        });
-
-        return result;
-    };
-
-    var getBishopMoves = function(x, y) {
-        return getLongMoves(x, y, diagonalMoves);
-    };
-
-    var getRookMoves = function(x, y) {
-        return getLongMoves(x, y, straightMoves);
-    };
-
-    var getQueenMoves = function(x, y) {
-        return getLongMoves(x, y, straightMoves.concat(diagonalMoves));
-    };
-
-    var getKingMoves = function(x, y) {
-        var result = [];
-
-        var toX, toY;
-        for(var i = -1; i <= 1; i++)
-        {
-            for(var j = -1; j <= 1; j++)
-            {
-                toX = x + i;
-                toY = y + j;
-                if(canMoveOrBeat(toX, toY) && !isAttacked(toX, toY))
-                {
-                    result.push([toX, toY]);
-                }
-            }
-        }
-
-        if(isCastlingPossible('short'))
-        {
-            result.push([x + 2, y]);
-        }
-
-        if(isCastlingPossible('long'))
-        {
-            result.push([x - 2, y]);
-        }
-
-        return result;
-    };
-
-    var getLongMoves = function(x, y, directions) {
-        var result = [];
-
-        directions.forEach(function(move) {
-            var j = 1;
-            var toX = x + (j * move.x);
-            var toY = y + (j * move.y);
-            while(isEmpty(toX, toY))
-            {
-                result.push([toX, toY]);
-                j += 1;
-                toX = x + (j * move.x);
-                toY = y + (j * move.y);
-            }
-            if(isEnemy(toX, toY))
-            {
-                result.push([toX, toY]);
-            }
-        });
-        return result;
-    };
-
-    var isCastlingPossible = function(direction) {
-        if(self.castlings[self.playerColor] != direction && self.castlings[self.playerColor] != 'both')
-        {
-console.info('hmm');
-            return false;
-        }
-
-        var kingX = self.playerColor == 'white' ? 4 : 3;
-        var y = 0;
-
-        if(isAttacked(kingX, y))
-        {
-console.info('he?', kingX, y);
-            return false;
-        }
-
-        var xMin, xMax;
-        if(direction == 'short')
-        {
-            xMin = 5;
-            xMax = 6;
-        }
-        else
-        {
-            xMin = 1;
-            xMax = 3;
-        }
-
-        for(var x = xMin; x <= xMax; x++)
-        {
-            if(isAttacked(x, y) || !isEmpty(x, y))
-            {
-console.info('attacked or not empty', x, y);
-                return false;
-            }
-        }
-
-        return true;
+        return self.state.possibleMoves[x][y];
     };
 
     var validCoords = function(x, y) {
@@ -301,7 +129,7 @@ console.info('attacked or not empty', x, y);
         {
             return false;
         }
-        return(self.tiles[y][x] == '_' ? true : false);
+        return(self.state.position[y][x] == '_' ? true : false);
     };
 
     var isEnemy = function(x, y) {
@@ -389,71 +217,39 @@ console.info('attacked or not empty', x, y);
     };
 
     var isPawn = function(x, y) {
-        return(validCoords(x, y) && self.tiles[y][x].toLowerCase() == 'p');
+        return(validCoords(x, y) && self.state.position[y][x].toLowerCase() == 'p');
     };
 
     var isKnight = function(x, y) {
-        return(validCoords(x, y) && self.tiles[y][x].toLowerCase() == 'k');
+        return(validCoords(x, y) && self.state.position[y][x].toLowerCase() == 'k');
     };
 
     var isBishop = function(x, y) {
-        return(validCoords(x, y) && self.tiles[y][x].toLowerCase() == 'b');
+        return(validCoords(x, y) && self.state.position[y][x].toLowerCase() == 'b');
     };
 
     var isRook = function(x, y) {
-        return(validCoords(x, y) && self.tiles[y][x].toLowerCase() == 'r');
+        return(validCoords(x, y) && self.state.position[y][x].toLowerCase() == 'r');
     };
 
     var isQueen = function(x, y) {
-        return(validCoords(x, y) && self.tiles[y][x].toLowerCase() == 'q');
+        return(validCoords(x, y) && self.state.position[y][x].toLowerCase() == 'q');
     };
 
     var isKing = function(x, y) {
-        return(validCoords(x, y) && self.tiles[y][x].toLowerCase() == 'x');
-    };
-
-    var canBeat = function(tile, x, y) {
-        var possibleMoves = getPossibleMoves(tile.x, tile.y, 'beat');
-        for(var i = 0; i < possibleMoves.length; i++)
-        {
-            if(possibleMoves[i].x == x && possibleMoves[i].y == y)
-            {
-                return true;
-            }
-        }
-        return false;
+        return(validCoords(x, y) && self.state.position[y][x].toLowerCase() == 'x');
     };
 
     var selectTile = function(x, y) {
-        possibleMoves = getPossibleMoves(x, y);
-
-        clearSelection();
-
         selectedTile.x = x;
         selectedTile.y = y;
-        var cell = getCellByCoords(x, y);
-        addClass(cell, 'selected');
-
-        possibleMoves.forEach(function(move) {
-            cell = getCellByCoords(move[0], move[1]);
-            addClass(cell, 'avail');
-        });
+        possibleMoves = getPossibleMoves(x, y);
     };
 
     var unselectTile = function() {
         selectedTile.x = -1;
         selectedTile.y = -1;
         possibleMoves = [];
-        clearSelection();
-    };
-
-    var clearSelection = function() {
-        var cells = document.getElementById('chessboard').getElementsByTagName('td');
-        for(var i = 0; i < cells.length; i++)
-        {
-            cells[i].className = '';
-        }
-        updateSelection();
     };
 
     var hasSelectedTile = function() {
@@ -463,7 +259,7 @@ console.info('attacked or not empty', x, y);
     var isMovePossible = function(x, y) {
         for(var i = 0; i < possibleMoves.length; i++)
         {
-            if(possibleMoves[i][0] == x && possibleMoves[i][1] == y)
+            if(possibleMoves[i].x == x && possibleMoves[i].y == y)
             {
                 return true;
             }
@@ -477,18 +273,18 @@ console.info('attacked or not empty', x, y);
             return false;
         }
 
-        var tile = self.tiles[y][x];
+        var tile = self.state.position[y][x];
         if(tile == '_')
         {
             return false;
         }
 
-        if(self.playerColor == 'white' && tile.toLowerCase() === tile)
+        if(self.state.color == 'white' && tile.toLowerCase() === tile)
         {
             return false;
         }
 
-        if(self.playerColor == 'black' && tile.toUpperCase() === tile)
+        if(self.state.color == 'black' && tile.toUpperCase() === tile)
         {
             return false;
         }
@@ -508,17 +304,13 @@ console.info('attacked or not empty', x, y);
     };
 
     var moveSelectedTile = function(x, y) {
-        var url = ajaxUrl + 'moveTile/' + self.tableId + '/' + selectedTile.x + ',' + selectedTile.y + '-' + x + ',' + y;
+        var url = ajaxUrl + 'moveTile/' + self.state.tableId + '/' + selectedTile.x + ',' + selectedTile.y + '-' + x + ',' + y;
         self.$http({'method': 'GET', 'url': url}).
             success(function(data, status, headers, config) {
+                console.info(data);
                 clearTimeout(checkStateTimer);
                 unselectTile();
-                switchPlayer();
-                self.tiles = data.position;
-                self.log = data.log;
-                self.lastMove = data.lastMove;
-                self.status = data.status;
-                updateSelection();
+                self.state = data;
                 checkStateTimer = setTimeout(checkGameState, CHECK_GAMESTATE_TIMEOUT);
             }).
             error(function(data, status, headers, config) {
@@ -527,35 +319,27 @@ console.info('attacked or not empty', x, y);
     };
 
     var switchPlayer = function() {
-        if(self.currentPlayer == 'black')
+        if(self.state.currentPlayer == 'black')
         {
-            self.currentPlayer = 'white';
+            self.state.currentPlayer = 'white';
         }
         else
         {
-            self.currentPlayer = 'black';
+            self.state.currentPlayer = 'black';
         }
     };
 
     var checkGameState = function() {
-        if(self.status != 'in_progress')
+        if(self.state.status != 'in_progress')
         {
             return false;
         }
 
-//         console.info('checking gamestate: ' + self.playerColor);
-        var url = ajaxUrl + 'checkGameState/' + self.tableId + '/' + self.playerColor;
+//         console.info('checking gamestate: ' + self.state.color);
+        var url = ajaxUrl + 'checkGameState/' + self.state.tableId + '/' + self.state.color;
         self.$http({'method': 'GET', 'url': url}).
             success(function(data, status, headers, config) {
-                if(data.currentPlayer != self.currentPlayer)
-                {
-                    self.currentPlayer = data.currentPlayer;
-                }
-                self.tiles = data.position;
-                self.log = data.log;
-                self.lastMove = data.lastMove;
-                self.status = data.status;
-                updateSelection();
+                self.state = data;
             }).
             error(function(data, status, headers, config) {
                 alert(data);
@@ -565,14 +349,5 @@ console.info('attacked or not empty', x, y);
         checkStateTimer = setTimeout(checkGameState, CHECK_GAMESTATE_TIMEOUT);
     };
 
-    var addClass = function(element, className) {
-        if(element.className.indexOf(className) === -1)
-        {
-            element.className += ' ' + className;
-        }
-    };
-
-    var removeClass = function(element, className) {
-        element.className = element.className.replace(className, '');
-    };
+    self.init();
 };

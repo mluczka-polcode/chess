@@ -7,7 +7,7 @@ chess_createTable:
     defaults: { _controller: AcmeChessBundle:Default:createTable }
 
 chess_table:
-    pattern:  /chess/table/{tableId}/{color}
+    pattern:  /chess/table/{tableId}/{player}
     defaults: { _controller: AcmeChessBundle:Default:table }
 
 chess_moveTile:
