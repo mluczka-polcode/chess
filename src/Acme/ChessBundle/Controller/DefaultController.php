@@ -14,13 +14,13 @@ class DefaultController extends Controller
         return $this->render('AcmeChessBundle:Default:index.html.twig');
     }
 
-    public function createTableAction($color)
+    public function createTableAction($player)
     {
         $tableId = md5(time());
-        
+
         return $this->redirect($this->generateUrl('chess_table', array(
             'tableId' => $tableId,
-            'color'   => $color,
+            'player'  => $player,
         )));
     }
 
@@ -54,7 +54,7 @@ class DefaultController extends Controller
         $game->setMoveCoords($fromX, $fromY, $toX, $toY);
         $game->moveTile();
 
-//         $this->save($game);
+        $this->save($game);
 
         return new JsonResponse($game->getGameState($player));
     }

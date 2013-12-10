@@ -15,14 +15,14 @@ class Knight extends Tile
         array('x' => -1, 'y' =>  2),
     );
 
-    public function getMoves($x, $y)
+    public function getMoves()
     {
         $moves = array();
 
         foreach($this->moves as $move)
         {
-            $toX = $x + $move['x'];
-            $toY = $y + $move['y'];
+            $toX = $this->x + $move['x'];
+            $toY = $this->y + $move['y'];
             if($this->canMoveOrBeat($toX, $toY))
             {
                 $moves[] = array(

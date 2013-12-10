@@ -3,7 +3,7 @@ chess_homepage:
     defaults: { _controller: AcmeChessBundle:Default:index }
 
 chess_createTable:
-    pattern:  /chess/createtable/{color}
+    pattern:  /chess/createtable/{player}
     defaults: { _controller: AcmeChessBundle:Default:createTable }
 
 chess_table:

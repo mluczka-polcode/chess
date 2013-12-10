@@ -10,20 +10,23 @@ abstract class Tile
     const PLAYER_WHITE = 'white';
     const PLAYER_BLACK = 'black';
 
+    protected $game;
+
     protected $position = array();
+
+    protected $x = null;
+
+    protected $y = null;
 
     protected $player = null;
 
-    protected $knightMoves = array(
-        array('x' =>  1, 'y' =>  2),
-        array('x' =>  2, 'y' =>  1),
-        array('x' =>  2, 'y' => -1),
-        array('x' =>  1, 'y' => -2),
-        array('x' => -1, 'y' => -2),
-        array('x' => -2, 'y' => -1),
-        array('x' => -2, 'y' =>  1),
-        array('x' => -1, 'y' =>  2),
-    );
+    protected $lastMove = null;
+
+    protected $castlings = array();
+
+    protected $moveLog = '';
+
+    protected $columnLetters = 'abcdefgh';
 
     protected $diagonalMoves = array(
         array('x' => 1,  'y' =>  1),
@@ -39,16 +42,31 @@ abstract class Tile
         array('x' =>  0, 'y' => -1),
     );
 
-    protected $lastMove = null;
+    public function init($game)
+    {
+        $this->game      = $game;
+        $this->position  = $game->getPosition();
+        $this->lastMove  = $game->getLastMove(self::PLAYER_WHITE);
+        $this->castlings = $game->getCastlings();
+    }
 
     public function setPosition($position)
     {
         $this->position = $position;
     }
 
-    public function setCurrentPlayer($player)
+    public function getPosition()
     {
-        $this->player = $player;
+        return $this->position;
+    }
+
+    public function setCoords($x, $y)
+    {
+        $this->x = $x;
+        $this->y = $y;
+
+        $tile = $this->position[$this->y][$this->x];
+        $this->currentPlayer = strtolower($tile) == $tile ? self::PLAYER_BLACK : self::PLAYER_WHITE;
     }
 
     public function setLastMove($move)
@@ -61,11 +79,68 @@ abstract class Tile
         return $this->lastMove;
     }
 
-    abstract public function getMoves($x, $y);
+    public function setCastlings($castlings)
+    {
+        $this->castlings = $castlings;
+    }
+
+    public function getCastlings()
+    {
+        return $this->castlings;
+    }
+
+    public function isAttacked()
+    {
+        // TODO: implement
+
+        return false;
+    }
+
+    public function move($toX, $toY)
+    {
+        $this->validateMove($toX, $toY);
+        $this->updateMoveLog($toX, $toY);
+        $this->updatePosition($toX, $toY);
+    }
+
+    public function getMoveLog()
+    {
+        return $this->moveLog;
+    }
+
+    abstract public function getMoves();
+
+    protected function validateMove($toX, $toY)
+    {
+        if(!in_array(array('x' => $toX, 'y' => $toY), $this->getMoves()))
+        {
+            throw new \Exception('Invalid move!');
+        }
+    }
+
+    protected function updateMoveLog($toX, $toY)
+    {
+        $this->moveLog = strtoupper($this->position[$this->y][$this->x]);
+
+        // source field
+        $this->moveLog .= $this->convertNumberToLetter($this->x) . ($this->y + 1);
+
+        // move or beat
+        $this->moveLog .= $this->position[$toY][$toX] == '_' ? '-' : ':';
+
+        // destination field
+        $this->moveLog .= $this->convertNumberToLetter($toX) . ($toY + 1);
+    }
+
+    protected function updatePosition($toX, $toY)
+    {
+        $this->position[$toY][$toX] = $this->position[$this->y][$this->x];
+        $this->position[$this->y][$this->x] = '_';
+    }
 
     protected function getCurrentPlayer()
     {
-        return $this->player;
+        return $this->currentPlayer;
     }
 
     protected function canMoveOrBeat($x, $y)
@@ -106,22 +181,22 @@ abstract class Tile
         return ( $this->isValidField($x, $y) && !$this->isEmptyField($x, $y) && !$this->isOwnTile($x, $y) );
     }
 
-    protected function getLongMoves($x, $y, $directions)
+    protected function getLongMoves($directions)
     {
         $moves = array();
 
         foreach($directions as $move)
         {
             $i = 1;
-            $toX = $x + ($i * $move['x']);
-            $toY = $y + ($i * $move['y']);
+            $toX = $this->x + ($i * $move['x']);
+            $toY = $this->y + ($i * $move['y']);
 
             while($this->isEmptyField($toX, $toY))
             {
                 $moves[] = array('x' => $toX, 'y' => $toY);
                 $i += 1;
-                $toX = $x + ($i * $move['x']);
-                $toY = $y + ($i * $move['y']);
+                $toX = $this->x + ($i * $move['x']);
+                $toY = $this->y + ($i * $move['y']);
             }
 
             if($this->isEnemyTile($toX, $toY))
@@ -133,34 +208,9 @@ abstract class Tile
         return $moves;
     }
 
-    protected function isPawn($x, $y)
+    protected function convertNumberToLetter($number)
     {
-        return($this->isValidField($x, $y) && strtolower($this->position[$y][$x]) == 'p');
-    }
-
-    protected function isKnight($x, $y)
-    {
-        return($this->isValidField($x, $y) && strtolower($this->position[$y][$x]) == 'k');
-    }
-
-    protected function isBishop($x, $y)
-    {
-        return($this->isValidField($x, $y) && strtolower($this->position[$y][$x]) == 'b');
-    }
-
-    protected function isRook($x, $y)
-    {
-        return($this->isValidField($x, $y) && strtolower($this->position[$y][$x]) == 'r');
-    }
-
-    protected function isQueen($x, $y)
-    {
-        return($this->isValidField($x, $y) && strtolower($this->position[$y][$x]) == 'q');
-    }
-
-    protected function isKing($x, $y)
-    {
-        return($this->isValidField($x, $y) && strtolower($this->position[$y][$x]) == 'x');
+        return $this->columnLetters[$number];
     }
 
 }

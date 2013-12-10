@@ -43,18 +43,25 @@ var ChessGame = function(gameState) {
     self.getFieldClass = function(x, y) {
         var classes = [];
 
-        if(x == self.state.lastMove.fromX && y == self.state.lastMove.fromY)
+        if(self.state.lastMove && x == self.state.lastMove.fromX && y == self.state.lastMove.fromY)
         {
             classes.push('moved');
         }
-        else if(x == self.state.lastMove.toX && y == self.state.lastMove.toY)
+        else if(self.state.lastMove && x == self.state.lastMove.toX && y == self.state.lastMove.toY)
         {
             classes.push('moved');
         }
 
-        if(isMyTile(x, y) && isKing(x, y) && isAttacked(x, y))
+        if(self.state.kingAttacked)
         {
-            classes.push('checked');
+            if(self.state.currentPlayer == 'white' && self.state.position[y][x] == 'X')
+            {
+                classes.push('checked');
+            }
+            else if(self.state.currentPlayer == 'black' && self.state.position[y][x] == 'x')
+            {
+                classes.push('checked');
+            }
         }
 
         if(x == selectedTile.x && y == selectedTile.y)
@@ -124,122 +131,6 @@ var ChessGame = function(gameState) {
         return true;
     };
 
-    var isEmpty = function(x, y) {
-        if(!validCoords(x, y))
-        {
-            return false;
-        }
-        return(self.state.position[y][x] == '_' ? true : false);
-    };
-
-    var isEnemy = function(x, y) {
-        return(validCoords(x, y) && !isEmpty(x, y) && !isMyTile(x, y));
-    };
-
-    var canMoveOrBeat = function(x, y) {
-        return(validCoords(x, y) && (isEmpty(x, y) || isEnemy(x, y)));
-    };
-
-    var isAttacked = function(x, y) {
-
-        // pawn
-        if(isEnemy(x - 1, y + 1) && isPawn(x - 1, y + 1))
-        {
-            return true;
-        }
-        if(isEnemy(x + 1, y + 1) && isPawn(x + 1, y + 1))
-        {
-            return true;
-        }
-
-        // knight
-        for(var i = 0; i < knightMoves.length; i++)
-        {
-            var toX = x + knightMoves[i].x;
-            var toY = y + knightMoves[i].y;
-            if(isEnemy(toX, toY) && isKnight(toX, toY))
-            {
-                return true;
-            }
-        }
-
-        // bishop or queen
-        for(var i = 0; i < diagonalMoves.length; i++)
-        {
-            var j = 1;
-            var toX = x + (j * diagonalMoves[i].x);
-            var toY = y + (j * diagonalMoves[i].y);
-            while(isEmpty(toX, toY))
-            {
-                j += 1;
-                toX = x + (j * diagonalMoves[i].x);
-                toY = y + (j * diagonalMoves[i].y);
-            }
-            if(isEnemy(toX, toY) && (isBishop(toX, toY) || isQueen(toX, toY)))
-            {
-                return true;
-            }
-        }
-
-        // rook or queen
-        for(var i = 0; i < straightMoves.length; i++)
-        {
-            var j = 1;
-            var toX = x + (j * straightMoves[i].x);
-            var toY = y + (j * straightMoves[i].y);
-            while(isEmpty(toX, toY))
-            {
-                j += 1;
-                toX = x + (j * straightMoves[i].x);
-                toY = y + (j * straightMoves[i].y);
-            }
-            if(isEnemy(toX, toY) && (isRook(toX, toY) || isQueen(toX, toY)))
-            {
-                return true;
-            }
-        }
-
-        // king
-        for(var i = -1; i <= 1; i++)
-        {
-            for(var j = -1; j <= 1; j++)
-            {
-                var toX = x + i;
-                var toY = y + j;
-                if(isEnemy(toX, toY) && isKing(toX, toY))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    };
-
-    var isPawn = function(x, y) {
-        return(validCoords(x, y) && self.state.position[y][x].toLowerCase() == 'p');
-    };
-
-    var isKnight = function(x, y) {
-        return(validCoords(x, y) && self.state.position[y][x].toLowerCase() == 'k');
-    };
-
-    var isBishop = function(x, y) {
-        return(validCoords(x, y) && self.state.position[y][x].toLowerCase() == 'b');
-    };
-
-    var isRook = function(x, y) {
-        return(validCoords(x, y) && self.state.position[y][x].toLowerCase() == 'r');
-    };
-
-    var isQueen = function(x, y) {
-        return(validCoords(x, y) && self.state.position[y][x].toLowerCase() == 'q');
-    };
-
-    var isKing = function(x, y) {
-        return(validCoords(x, y) && self.state.position[y][x].toLowerCase() == 'x');
-    };
-
     var selectTile = function(x, y) {
         selectedTile.x = x;
         selectedTile.y = y;
@@ -307,7 +198,7 @@ var ChessGame = function(gameState) {
         var url = ajaxUrl + 'moveTile/' + self.state.tableId + '/' + selectedTile.x + ',' + selectedTile.y + '-' + x + ',' + y;
         self.$http({'method': 'GET', 'url': url}).
             success(function(data, status, headers, config) {
-                console.info(data);
+//                 console.info(data);
                 clearTimeout(checkStateTimer);
                 unselectTile();
                 self.state = data;
