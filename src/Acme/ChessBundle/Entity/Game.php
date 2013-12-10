@@ -598,16 +598,20 @@ class Game
 
         $tile->move($this->toX, $this->toY);
 
-        $this->log .= $tile->getMoveLog() . "\n";
+        $this->log .= $tile->getMoveLog();
+
         $this->setPosition($tile->getPosition());
         $this->switchPlayer();
+
+        $checked = $this->isOwnKingAttacked();
 
         $possibleMoves = $this->getPossibleMoves();
         if(empty($possibleMoves))
         {
-            if($this->isOwnKingAttacked())
+            if($checked)
             {
                 $status = $this->getCurrentPlayer() == self::PLAYER_WHITE ? 'black_won' : 'white_won';
+                $this->log .= 'x';
             }
             else
             {
@@ -615,6 +619,12 @@ class Game
             }
             $this->setStatus($status);
         }
+        elseif($checked)
+        {
+            $this->log .= '+';
+        }
+
+        $this->log .= "\n";
     }
 
     private function switchPlayer()
