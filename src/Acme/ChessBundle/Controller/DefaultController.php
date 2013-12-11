@@ -37,7 +37,7 @@ class DefaultController extends Controller
             $game = new Game();
             $game->setTableId($tableId);
 
-            $this->save($game);
+//             $this->save($game);
         }
 
         return $this->render('AcmeChessBundle:Default:table.html.twig', array(
@@ -51,8 +51,7 @@ class DefaultController extends Controller
 
         $player = $game->getCurrentPlayer();
 
-        $game->setMoveCoords($fromX, $fromY, $toX, $toY);
-        $game->moveTile();
+        $game->moveTile($fromX, $fromY, $toX, $toY);
 
         $this->save($game);
 

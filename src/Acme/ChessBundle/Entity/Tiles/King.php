@@ -4,7 +4,12 @@ namespace Acme\ChessBundle\Entity\Tiles;
 
 class King extends Tile
 {
-    public function getMoves()
+    public function getName()
+    {
+        return 'king';
+    }
+
+    public function getMoves($mode = 'all')
     {
         $moves = array();
 
@@ -12,23 +17,28 @@ class King extends Tile
         {
             for($j = -1; $j <= 1; $j++)
             {
-                $toX = $this->x + $i;
-                $toY = $this->y + $j;
-                if($this->canMoveOrBeat($toX, $toY))
+                $destination = array(
+                    'x' => $this->x + $i,
+                    'y' => $this->y + $j,
+                );
+                if($this->canMoveOrBeat($destination))
                 {
-                    $moves[] = array('x' => $toX, 'y' => $toY);
+                    $moves[] = $destination;
                 }
             }
         }
 
-        if($this->isCastlingPossible('short'))
+        if(in_array($mode, array('move', 'all')))
         {
-            $moves[] = array('x' => $this->x + 2, 'y' => $this->y);
-        }
+            if($this->isCastlingPossible('short'))
+            {
+                $moves[] = array('x' => $this->x + 2, 'y' => $this->y);
+            }
 
-        if($this->isCastlingPossible('long'))
-        {
-            $moves[] = array('x' => $this->x - 2, 'y' => $this->y);
+            if($this->isCastlingPossible('long'))
+            {
+                $moves[] = array('x' => $this->x - 2, 'y' => $this->y);
+            }
         }
 
         return $moves;
@@ -36,8 +46,8 @@ class King extends Tile
 
     private function isCastlingPossible($direction)
     {
-        $castlings = $this->getCastlings();
-        $player = $this->getCurrentPlayer();
+        $castlings = $this->board->getCastlings();
+        $player = $this->getOwner();
 
         if(!in_array($castlings[$player], array($direction, 'both')))
         {
@@ -47,10 +57,10 @@ class King extends Tile
         $kingX = 4;
         $y = $player == self::PLAYER_WHITE ? 0 : 7;
 
-//         if($this->isAttacked($kingX, $y))
-//         {
-//             return false;
-//         }
+        if($this->board->isFieldAttacked($this->getCoords(), $player))
+        {
+            return false;
+        }
 
         if($direction == 'short')
         {
@@ -70,26 +80,28 @@ class King extends Tile
                 return false;
             }
 
-//             if($x > 1 && $this->isAttacked($x, $y))
-//             {
-//                 return false;
-//             }
+            if($x > 1 && $this->board->isFieldAttacked($this->getCoords(), $player))
+            {
+                return false;
+            }
         }
 
         return true;
     }
 
-    public function move($toX, $toY)
+    protected function afterMove()
     {
-        $castlings = $this->getCastlings();
-        $castlings[$this->getCurrentPlayer()] = 'none';
-        $this->game->setCastlings($castlings);
-
-        parent::move($toX, $toY);
+        $castlings = $this->board->getCastlings();
+        $castlings[$this->getOwner()] = 'none';
+        $this->board->setCastlings($castlings);
     }
 
-    protected function updateMoveLog($toX, $toY)
+    protected function updateMoveLog()
     {
+        $destination = $this->getDestination();
+        $toX = $destination['x'];
+        $toY = $destination['y'];
+
         if($this->isShortCastling($toX, $toY))
         {
             $this->moveLog .= 'O-O';
@@ -100,12 +112,16 @@ class King extends Tile
         }
         else
         {
-            parent::updateMoveLog($toX, $toY);
+            parent::updateMoveLog();
         }
     }
 
-    protected function updatePosition($toX, $toY)
+    protected function updatePosition()
     {
+        $destination = $this->getDestination();
+        $toX = $destination['x'];
+        $toY = $destination['y'];
+
         if($this->isShortCastling($toX, $toY))
         {
             $this->position[$toY][$toX - 1] = $this->position[$this->y][7];
@@ -117,7 +133,7 @@ class King extends Tile
             $this->position[$this->y][0] = '_';
         }
 
-        parent::updatePosition($toX, $toY);
+        parent::updatePosition();
     }
 
     protected function isShortCastling($toX, $toY)

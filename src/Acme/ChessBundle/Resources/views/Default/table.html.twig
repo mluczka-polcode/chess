@@ -34,7 +34,7 @@
     <p>current player: <b ng-bind="game.state.currentPlayer"></b></p>
     <p>game status: <b ng-bind="game.state.status"></b></p>
     <!--<p>tie: <b ng-bind="game.state.tieProposal"></b></p>-->
-    <!--<p>castlings: white <b ng-bind="game.state.castlings.white"></b>, black <b ng-bind="game.state.castlings.black"></b></p>-->
+    <p>castlings: white <b ng-bind="game.state.castlings.white"></b>, black <b ng-bind="game.state.castlings.black"></b></p>
     <!--<a href="{{ path('chess_proposeTie', {'tableId': gamestate.tableId, 'player': gamestate.color }) }}">propose a tie</a>-->
     <ol id="chessLog">
         <li ng-repeat="move in game.state.log" ng-bind="move"></li>

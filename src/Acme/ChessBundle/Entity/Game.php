@@ -24,6 +24,8 @@ class Game
 
     private $columnLetters = 'abcdefgh';
 
+    private $board;
+
     /**
      * @var integer
      */
@@ -67,6 +69,15 @@ class Game
      * @var string
      */
     private $status = 'in_progress';
+
+    /** @PostLoad */
+    public function onLoad()
+    {
+        $this->board = new Chessboard();
+        $this->board->setPosition($this->getPosition());
+        $this->board->setLastMove($this->getLastMove());
+        $this->board->setCastlings($this->getCastlings());
+    }
 
     /**
      * Get id
@@ -125,16 +136,11 @@ class Game
      *
      * @return array
      */
-    public function getPosition($player = null)
+    public function getPosition()
     {
-        if(!$player)
+        if(!empty($this->positionArray))
         {
-            $player = self::PLAYER_WHITE;
-        }
-
-        if(!empty($this->positionArray[$player]))
-        {
-            return $this->positionArray[$player];
+            return $this->positionArray;
         }
 
         $result = array();
@@ -142,19 +148,10 @@ class Game
         $position = explode("\n", trim(str_replace("\r", '', $this->position)));
         foreach($position as $row)
         {
-            if($player == self::PLAYER_BLACK)
-            {
-                $row = strrev($row);
-            }
             $result[] = str_split($row);
         }
 
-        if($player == self::PLAYER_BLACK)
-        {
-            $result = array_reverse($result);
-        }
-
-        $this->positionArray[$player] = $result;
+        $this->positionArray = $result;
 
         return $result;
     }
@@ -284,204 +281,6 @@ class Game
         return $this->status;
     }
 
-    public function getGameState($player)
-    {
-        return array(
-            'tableId'       => $this->tableId,
-            'color'         => $player,
-            'position'      => $this->getPosition($player),
-            'possibleMoves' => $this->getPossibleMoves(),
-            'log'           => $this->getLog(),
-            'status'        => $this->getStatus(),
-            'lastMove'      => $this->getLastMove($player),
-            'castlings'     => $this->getCastlings(),
-            'tieProposal'   => $this->getTieProposal(),
-            'currentPlayer' => $this->getCurrentPlayer(),
-            'kingAttacked'  => $this->isOwnKingAttacked(),
-        );
-    }
-
-    private function getPossibleMoves()
-    {
-        $moves = array();
-
-        $position = $this->getPosition();
-        foreach($position as $y => $row)
-        {
-            foreach($row as $x => $field)
-            {
-                if($this->isOwnTile($x, $y))
-                {
-                    $possibleMovesForTile = $this->getPossibleMovesForTile($x, $y);
-                    if(!empty($possibleMovesForTile))
-                    {
-                        $moves[$x][$y] = $possibleMovesForTile;
-                    }
-                }
-            }
-        }
-
-        if($this->getCurrentPlayer() == self::PLAYER_BLACK)
-        {
-            $moves = $this->reverseCoords($moves);
-        }
-
-        return $moves;
-    }
-
-    private function getPossibleMovesForTile($x, $y)
-    {
-        $result = array();
-
-        $game = new Game();
-        $game->setCastlings($this->getCastlings());
-        $game->setCurrentPlayer($this->getCurrentPlayer());
-        $game->setPosition($this->getPosition());
-
-        $tile = $this->getTileEntity($x, $y, $game);
-        $moves = $tile->getMoves();
-        foreach($moves as $move)
-        {
-            $tile->setPosition($this->getPosition());
-            $tile->move($move['x'], $move['y']);
-
-            $game->setPosition($tile->getPosition());
-            if(!$game->isOwnKingAttacked())
-            {
-                $result[] = $move;
-            }
-
-            $game->setCastlings($this->getCastlings());
-            $game->setCurrentPlayer($this->getCurrentPlayer());
-            $game->setPosition($this->getPosition());
-        }
-
-        return $result;
-    }
-
-    private function getTileEntity($x, $y, $game = null)
-    {
-        $position = $this->getPosition();
-        $tile = strtolower($position[$y][$x]);
-        $entities = array(
-            'p' => new Tiles\Pawn,
-            'k' => new Tiles\Knight,
-            'b' => new Tiles\Bishop,
-            'r' => new Tiles\Rook,
-            'q' => new Tiles\Queen,
-            'x' => new Tiles\King,
-        );
-
-        if(empty($entities[$tile]))
-        {
-            throw new \Exception('Invalid tile: ' . $tile);
-        }
-
-        $entity = $entities[$tile];
-        $entity->init($game ? $game : $this);
-        $entity->setCoords($x, $y);
-
-        return $entity;
-    }
-
-    private function reverseCoords($data)
-    {
-        $out = array();
-
-        foreach($data as $y => $row)
-        {
-            foreach($row as $x => $field)
-            {
-                foreach($field as $move)
-                {
-                    $out[self::BOARD_SIZE - 1 - $y][self::BOARD_SIZE - 1 - $x][] = array(
-                        'x' => self::BOARD_SIZE - 1 - $move['x'],
-                        'y' => self::BOARD_SIZE - 1 - $move['y'],
-                    );
-                }
-            }
-        }
-
-        return $out;
-    }
-
-    private function isOwnKingAttacked()
-    {
-        $player = $this->getCurrentPlayer();
-        $position = $this->getPosition();
-
-        $x = $y = -1;
-        foreach($position as $y => $row)
-        {
-            foreach($row as $x => $field)
-            {
-                if(($player == self::PLAYER_WHITE && $field == 'X') || ($player == self::PLAYER_BLACK && $field == 'x'))
-                {
-                    return $this->isAttacked($x, $y);
-                }
-            }
-        }
-
-        throw new \Exception('Failed to find ' . $this->getCurrentPlayer() . ' king!');
-    }
-
-    private function isValidField($x, $y)
-    {
-        return ( $x >= 0 && $x < self::BOARD_SIZE && $y >= 0 && $y < self::BOARD_SIZE );
-    }
-
-    private function isEmptyField($x, $y)
-    {
-        $position = $this->getPosition();
-        return $position[$y][$x] == '_';
-    }
-
-    private function isOwnTile($x, $y)
-    {
-        $player = $this->getCurrentPlayer();
-        $position = $this->getPosition();
-        if(!$this->isValidField($x, $y) || $this->isEmptyField($x, $y))
-        {
-            return false;
-        }
-
-        if($player == self::PLAYER_WHITE)
-        {
-            return $position[$y][$x] == strtoupper($position[$y][$x]);
-        }
-        elseif($player == self::PLAYER_BLACK)
-        {
-            return $position[$y][$x] == strtolower($position[$y][$x]);
-        }
-    }
-
-    private function isEnemyTile($x, $y)
-    {
-        return ( $this->isValidField($x, $y) && !$this->isEmptyField($x, $y) && !$this->isOwnTile($x, $y) );
-    }
-
-    private function isAttacked($x, $y)
-    {
-        $position = $this->getPosition(self::PLAYER_WHITE);
-        foreach($position as $tileX => $row)
-        {
-            foreach($row as $tileY => $field)
-            {
-                if($this->isEnemyTile($tileX, $tileY))
-                {
-                    $tile = $this->getTileEntity($tileX, $tileY);
-                    $moves = $tile->getMoves();
-                    if(in_array(array('x' => $x, 'y' => $y), $moves))
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
     public function getCurrentPlayer()
     {
         if(!$this->currentPlayer)
@@ -512,14 +311,38 @@ class Game
         $this->currentPlayer = $player;
     }
 
-    public function getLastMove($player = null)
+    public function getGameState($player)
     {
-        if(!$player)
+        $gameState = array(
+            'tableId'       => $this->tableId,
+            'color'         => $player,
+            'position'      => $this->getPosition(),
+            'possibleMoves' => $this->getPossibleMoves($player),
+            'log'           => $this->getLog(),
+            'status'        => $this->getStatus(),
+            'lastMove'      => $this->getLastMove(),
+            'castlings'     => $this->getCastlings(),
+            'tieProposal'   => $this->getTieProposal(),
+            'currentPlayer' => $this->getCurrentPlayer(),
+            'kingAttacked'  => $this->isKingAttacked(),
+        );
+
+        if($player == self::PLAYER_BLACK)
         {
-            $player = $this->getCurrentPlayer();
+            $gameState['position'] = $this->reversePosition($gameState['position']);
+            $gameState['possibleMoves'] = $this->reverseMoves($gameState['possibleMoves']);
+            foreach($gameState['lastMove'] as &$coord)
+            {
+                $coord = $this->getReverseCoord($coord);
+            }
         }
 
-        if($this->log == '')
+        return $gameState;
+    }
+
+    public function getLastMove()
+    {
+        if(trim($this->log) == '')
         {
             return null;
         }
@@ -551,14 +374,6 @@ class Game
             $toY = $posEnd[1] - 1;
         }
 
-        if($player == self::PLAYER_BLACK)
-        {
-            $fromX = (self::BOARD_SIZE - 1) - $fromX;
-            $fromY = (self::BOARD_SIZE - 1) - $fromY;
-            $toX   = (self::BOARD_SIZE - 1) - $toX;
-            $toY   = (self::BOARD_SIZE - 1) - $toY;
-        }
-
         return array(
             'fromX' => $fromX,
             'fromY' => $fromY,
@@ -567,43 +382,37 @@ class Game
         );
     }
 
-    public function setMoveCoords($fromX, $fromY, $toX, $toY)
+    public function moveTile($fromX, $fromY, $toX, $toY)
     {
-        foreach(array($fromX, $fromY, $toX, $toY) as $coord)
-        {
-            if(!preg_match('/\d/', $coord) || $coord < 0 || $coord >= self::BOARD_SIZE)
-            {
-                throw new \Exception('Invalid move coords!');
-            }
-        }
-
         if($this->getCurrentPlayer() == self::PLAYER_BLACK)
         {
-            $fromX = (self::BOARD_SIZE - 1) - $fromX;
-            $fromY = (self::BOARD_SIZE - 1) - $fromY;
-            $toX   = (self::BOARD_SIZE - 1) - $toX;
-            $toY   = (self::BOARD_SIZE - 1) - $toY;
+            $fromX = $this->getReverseCoord($fromX);
+            $fromY = $this->getReverseCoord($fromY);
+            $toX = $this->getReverseCoord($toX);
+            $toY = $this->getReverseCoord($toY);
         }
 
-        $this->fromX = $fromX;
-        $this->fromY = $fromY;
-        $this->toX   = $toX;
-        $this->toY   = $toY;
-    }
+        $coordsFrom = array(
+            'x' => $fromX,
+            'y' => $fromY,
+        );
 
-    public function moveTile()
-    {
-        $position = $this->getPosition();
-        $tile = $this->getTileEntity($this->fromX, $this->fromY);
+        $coordsTo = array(
+            'x' => $toX,
+            'y' => $toY,
+        );
 
-        $tile->move($this->toX, $this->toY);
+        $this->board->move($coordsFrom, $coordsTo);
 
-        $this->log .= $tile->getMoveLog();
+        $this->setPosition($this->board->getPosition());
+//         $this->setLastMove($this->board->getLastMove());
+        $this->setCastlings($this->board->getCastlings());
 
-        $this->setPosition($tile->getPosition());
+        $this->log .= $this->board->getMoveLog();
+
         $this->switchPlayer();
 
-        $checked = $this->isOwnKingAttacked();
+        $checked = $this->isKingAttacked();
 
         $possibleMoves = $this->getPossibleMoves();
         if(empty($possibleMoves))
@@ -625,6 +434,72 @@ class Game
         }
 
         $this->log .= "\n";
+    }
+
+    private function reversePosition($data)
+    {
+        foreach($data as $y => &$row)
+        {
+            $row = array_reverse($row);
+        }
+
+        $data = array_reverse($data);
+
+        return $data;
+    }
+
+    private function reverseMoves($data)
+    {
+        $out = array();
+
+        foreach($data as $y => $row)
+        {
+            foreach($row as $x => $field)
+            {
+                foreach($field as $move)
+                {
+                    $out[$this->getReverseCoord($y)][$this->getReverseCoord($x)][] = array(
+                        'x' => $this->getReverseCoord($move['x']),
+                        'y' => $this->getReverseCoord($move['y']),
+                    );
+                }
+            }
+        }
+
+        ksort($out);
+
+        return $out;
+    }
+
+    private function getReverseCoord($coord)
+    {
+        if(!preg_match('/\d/', $coord) || $coord < 0 || $coord >= self::BOARD_SIZE)
+        {
+            throw new \Exception('Invalid move coords!');
+        }
+
+        $coord = (self::BOARD_SIZE - 1) - $coord;
+
+        return $coord;
+    }
+
+    private function getPossibleMoves($player = null)
+    {
+        if(!$player)
+        {
+            $player = $this->getCurrentPlayer();
+        }
+        elseif($player != $this->getCurrentPlayer())
+        {
+            return array();
+        }
+
+        return $this->board->getPossibleMoves($player);
+    }
+
+    private function isKingAttacked()
+    {
+        return $this->board->isKingAttacked($this->getCurrentPlayer());
     }
 
     private function switchPlayer()

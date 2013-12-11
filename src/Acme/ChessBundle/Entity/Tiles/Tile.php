@@ -10,19 +10,13 @@ abstract class Tile
     const PLAYER_WHITE = 'white';
     const PLAYER_BLACK = 'black';
 
-    protected $game;
+    protected $board;
 
     protected $position = array();
 
     protected $x = null;
 
     protected $y = null;
-
-    protected $currentPlayer = null;
-
-    protected $lastMove = null;
-
-    protected $castlings = array();
 
     protected $moveLog = '';
 
@@ -42,12 +36,10 @@ abstract class Tile
         array('x' =>  0, 'y' => -1),
     );
 
-    public function init($game)
+    public function setBoard($board)
     {
-        $this->game      = $game;
-        $this->position  = $game->getPosition();
-        $this->lastMove  = $game->getLastMove(self::PLAYER_WHITE);
-        $this->castlings = $game->getCastlings();
+        $this->board = $board;
+        $this->setPosition($board->getPosition());
     }
 
     public function setPosition($position)
@@ -60,47 +52,43 @@ abstract class Tile
         return $this->position;
     }
 
-    public function setCoords($x, $y)
+    public function setCoords($coords)
     {
-        $this->x = $x;
-        $this->y = $y;
-
-        $tile = $this->position[$this->y][$this->x];
-        $this->currentPlayer = strtolower($tile) == $tile ? self::PLAYER_BLACK : self::PLAYER_WHITE;
+        $this->x = $coords['x'];
+        $this->y = $coords['y'];
     }
 
-    public function setLastMove($move)
+    public function getCoords()
     {
-        $this->lastMove = $move;
+        return array(
+            'x' => $this->x,
+            'y' => $this->y,
+        );
     }
 
-    public function getLastMove()
+    public function setOwner($owner)
     {
-        return $this->lastMove;
+        $this->owner = $owner;
     }
 
-    public function setCastlings($castlings)
+    public function getOwner()
     {
-        $this->castlings = $castlings;
+        return $this->owner;
     }
 
-    public function getCastlings()
+    public function canAttack($destination)
     {
-        return $this->castlings;
+        return in_array($destination, $this->getMoves('beat'));
     }
 
-    public function isAttacked()
+    final public function move($destination)
     {
-        // TODO: implement
-
-        return false;
-    }
-
-    public function move($toX, $toY)
-    {
-        $this->validateMove($toX, $toY);
-        $this->updateMoveLog($toX, $toY);
-        $this->updatePosition($toX, $toY);
+        $this->setDestination($destination);
+        $this->validateMove();
+        $this->updateMoveLog();
+        $this->updatePosition();
+        $this->afterMove();
+        $this->setCoords($destination);
     }
 
     public function getMoveLog()
@@ -108,43 +96,70 @@ abstract class Tile
         return $this->moveLog;
     }
 
-    abstract public function getMoves();
+    abstract public function getName();
 
-    protected function validateMove($toX, $toY)
+    abstract public function getMoves($mode = 'all');
+
+    protected function setDestination($destination)
     {
-        if(!in_array(array('x' => $toX, 'y' => $toY), $this->getMoves()))
+        $this->destination = $destination;
+    }
+
+    protected function getDestination()
+    {
+        return $this->destination;
+    }
+
+    protected function validateMove()
+    {
+        if(!in_array($this->getDestination(), $this->getMoves()))
         {
+print_r($this->getName());
+echo "<br />\n";
+print_r($this->getCoords());
+echo "<br />\n";
+print_r($this->getDestination());
+echo "<br />\n";
+print_r($this->getMoves());
+echo "<br />\n";
+print_r($this->board->getLastMove());
+echo "<br />\n";
             throw new \Exception('Invalid move!');
         }
     }
 
-    protected function updateMoveLog($toX, $toY)
+    protected function updateMoveLog()
     {
+        $destination = $this->getDestination();
+
         $this->moveLog = strtoupper($this->position[$this->y][$this->x]);
 
         // source field
         $this->moveLog .= $this->convertNumberToLetter($this->x) . ($this->y + 1);
 
         // move or beat
-        $this->moveLog .= $this->position[$toY][$toX] == '_' ? '-' : ':';
+        $this->moveLog .= $this->position[$destination['y']][$destination['x']] == '_' ? '-' : ':';
 
         // destination field
-        $this->moveLog .= $this->convertNumberToLetter($toX) . ($toY + 1);
+        $this->moveLog .= $this->convertNumberToLetter($destination['x']) . ($destination['y'] + 1);
     }
 
-    protected function updatePosition($toX, $toY)
+    protected function afterMove()
     {
-        $this->position[$toY][$toX] = $this->position[$this->y][$this->x];
+    }
+
+    protected function updatePosition()
+    {
+        $destination = $this->getDestination();
+
+        $this->position[$destination['y']][$destination['x']] = $this->position[$this->y][$this->x];
         $this->position[$this->y][$this->x] = '_';
     }
 
-    protected function getCurrentPlayer()
+    protected function canMoveOrBeat($coords)
     {
-        return $this->currentPlayer;
-    }
-
-    protected function canMoveOrBeat($x, $y)
-    {
+        $x = $coords['x'];
+        $y = $coords['y'];
         return ( $this->isValidField($x, $y) && ($this->isEmptyField($x, $y) || $this->isEnemyTile($x, $y)) );
     }
 
@@ -165,7 +180,7 @@ abstract class Tile
             return false;
         }
 
-        $player = $this->getCurrentPlayer();
+        $player = $this->getOwner();
         if($player == self::PLAYER_WHITE)
         {
             return $this->position[$y][$x] == strtoupper($this->position[$y][$x]);

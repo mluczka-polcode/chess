@@ -25,4 +25,5 @@ Acme\ChessBundle\Entity\Game:
         status:
             type: string
             length: '16'
-    lifecycleCallbacks: {  }
+    lifecycleCallbacks:
+        postLoad: [ onLoad ]

@@ -4,68 +4,83 @@ namespace Acme\ChessBundle\Entity\Tiles;
 
 class Pawn extends Tile
 {
-    public function getMoves()
+    public function getName()
+    {
+        return 'pawn';
+    }
+
+    public function getMoves($mode = 'all')
     {
         $x = $this->x;
         $y = $this->y;
 
         $moves = array();
 
-        $modifier = $this->getCurrentPlayer() == self::PLAYER_WHITE ? 1 : -1;
+        $modifier = $this->getOwner() == self::PLAYER_WHITE ? 1 : -1;
 
-        // move
-        if($this->isEmptyField($x, $y + $modifier))
+        if(in_array($mode, array('move', 'all')))
         {
-            $moves[] = array(
-                'x' => $x,
-                'y' => $y + $modifier,
-            );
-
-            if($this->isStartingLine($y) && $this->isEmptyField($x, $y + (2 * $modifier)))
+            if($this->isEmptyField($x, $y + $modifier))
             {
                 $moves[] = array(
                     'x' => $x,
-                    'y' => $y + (2 * $modifier),
+                    'y' => $y + $modifier,
                 );
+
+                if($this->isStartingLine($y) && $this->isEmptyField($x, $y + (2 * $modifier)))
+                {
+                    $moves[] = array(
+                        'x' => $x,
+                        'y' => $y + (2 * $modifier),
+                    );
+                }
             }
         }
 
-        // beat
-        $beatMoves = array(
-            array('x' => $x - 1, 'y' => $y + $modifier),
-            array('x' => $x + 1, 'y' => $y + $modifier),
-        );
-        foreach($beatMoves as $move)
+        if(in_array($mode, array('beat', 'all')))
         {
-            if($this->isEnemyTile($move['x'], $move['y']) || $this->enPassantPossible($move['x'], $move['y']))
+            $beatMoves = array(
+                array('x' => $x - 1, 'y' => $y + $modifier),
+                array('x' => $x + 1, 'y' => $y + $modifier),
+            );
+            foreach($beatMoves as $move)
             {
-                $moves[] = array(
-                    'x' => $move['x'],
-                    'y' => $move['y'],
-                );
+                if($this->isEnemyTile($move['x'], $move['y']) || $this->enPassantPossible($move['x'], $move['y']))
+                {
+                    $moves[] = array(
+                        'x' => $move['x'],
+                        'y' => $move['y'],
+                    );
+                }
             }
         }
 
         return $moves;
     }
 
-    protected function updateMoveLog($toX, $toY)
+    protected function updateMoveLog()
     {
+        $destination = $this->getDestination();
+
         // source field
         $this->moveLog .= $this->convertNumberToLetter($this->x) . ($this->y + 1);
 
         // move or beat
-        $this->moveLog .= $this->position[$toY][$toX] == '_' && !$this->enPassantPossible($toX, $toY) ? '-' : ':';
+        $this->moveLog .= $this->position[$destination['y']][$destination['x']] == '_' ? '-' : ':';
 
         // destination field
-        $this->moveLog .= $this->convertNumberToLetter($toX) . ($toY + 1);
+        $this->moveLog .= $this->convertNumberToLetter($destination['x']) . ($destination['y'] + 1);
     }
 
-    protected function updatePosition($toX, $toY)
+    protected function updatePosition()
     {
+        $destination = $this->getDestination();
+        $toX = $destination['x'];
+        $toY = $destination['y'];
+
         if($this->isLastLine($toY))
         {
-            $this->position[$toY][$toX] = $this->getCurrentPlayer() == self::PLAYER_WHITE ? 'Q' : 'q';
+            $this->position[$toY][$toX] = $this->getOwner() == self::PLAYER_WHITE ? 'Q' : 'q';
             $this->position[$this->y][$this->x] = '_';
             return;
         }
@@ -74,22 +89,22 @@ class Pawn extends Tile
         {
             $this->position[$toY][$toX] = $this->position[$this->y][$this->x];
             $this->position[$this->y][$this->x] = '_';
-            $lastMove = $this->getLastMove();
+            $lastMove = $this->board->getLastMove();
             $this->position[$lastMove['toY']][$lastMove['toX']] = '_';
             return;
         }
 
-        parent::updatePosition($toX, $toY);
+        parent::updatePosition($destination);
     }
 
     private function isStartingLine($y)
     {
-        if($this->getCurrentPlayer() == self::PLAYER_WHITE && $y == 1)
+        if($this->getOwner() == self::PLAYER_WHITE && $y == 1)
         {
             return true;
         }
 
-        if($this->getCurrentPlayer() == self::PLAYER_BLACK && $y == self::BOARD_SIZE - 2)
+        if($this->getOwner() == self::PLAYER_BLACK && $y == self::BOARD_SIZE - 2)
         {
             return true;
         }
@@ -99,12 +114,12 @@ class Pawn extends Tile
 
     private function isLastLine($y)
     {
-        if($this->getCurrentPlayer() == self::PLAYER_WHITE && $y == self::BOARD_SIZE - 1)
+        if($this->getOwner() == self::PLAYER_WHITE && $y == self::BOARD_SIZE - 1)
         {
             return true;
         }
 
-        if($this->getCurrentPlayer() == self::PLAYER_BLACK && $y == 0)
+        if($this->getOwner() == self::PLAYER_BLACK && $y == 0)
         {
             return true;
         }
@@ -114,7 +129,7 @@ class Pawn extends Tile
 
     private function enPassantPossible($x, $y)
     {
-        $lastMove = $this->getLastMove();
+        $lastMove = $this->board->getLastMove();
         if(!$lastMove)
         {
             return false;
@@ -124,7 +139,7 @@ class Pawn extends Tile
             $lastMove['fromX'] == $x
             && $lastMove['fromY'] + $lastMove['toY'] == 2 * $y
             && $this->isEnemyTile($lastMove['toX'], $lastMove['toY'])
-            && $this->isPawn($lastMove['toX'], $lastMove['toY'])
+            && strtolower($this->position[$lastMove['toY']][$lastMove['toX']]) == 'p'
             && abs($lastMove['toY'] - $lastMove['fromY']) == 2
         );
     }
