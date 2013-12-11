@@ -52,16 +52,9 @@ var ChessGame = function(gameState) {
             classes.push('moved');
         }
 
-        if(self.state.kingAttacked)
+        if(isKing(x, y) && isCurrentPlayerTile(x, y) && self.state.kingAttacked)
         {
-            if(self.state.currentPlayer == 'white' && self.state.position[y][x] == 'X')
-            {
-                classes.push('checked');
-            }
-            else if(self.state.currentPlayer == 'black' && self.state.position[y][x] == 'x')
-            {
-                classes.push('checked');
-            }
+            classes.push('checked');
         }
 
         if(x == selectedTile.x && y == selectedTile.y)
@@ -183,9 +176,28 @@ var ChessGame = function(gameState) {
         return true;
     };
 
+    var isKing = function(x, y) {
+        return ( self.state.position[y][x].toLowerCase() == 'x');
+    };
+
+    var isCurrentPlayerTile = function(x, y) {
+        var tile = self.state.position[y][x];
+        if(self.state.currentPlayer == 'white' && tile.toUpperCase() === tile)
+        {
+            return true;
+        }
+
+        if(self.state.currentPlayer == 'black' && tile.toLowerCase() === tile)
+        {
+            return true;
+        }
+
+        return false;
+    };
+
     var tileCanMove = function(x, y) {
         var possibleMoves = getPossibleMoves(x, y);
-        return(possibleMoves && possibleMoves.length ? true : false);
+        return ( possibleMoves && possibleMoves.length ? true : false );
     };
 
     var getCellByCoords = function(x, y) {
@@ -198,7 +210,6 @@ var ChessGame = function(gameState) {
         var url = ajaxUrl + 'moveTile/' + self.state.tableId + '/' + selectedTile.x + ',' + selectedTile.y + '-' + x + ',' + y;
         self.$http({'method': 'GET', 'url': url}).
             success(function(data, status, headers, config) {
-//                 console.info(data);
                 clearTimeout(checkStateTimer);
                 unselectTile();
                 self.state = data;
@@ -226,7 +237,6 @@ var ChessGame = function(gameState) {
             return false;
         }
 
-//         console.info('checking gamestate: ' + self.state.color);
         var url = ajaxUrl + 'checkGameState/' + self.state.tableId + '/' + self.state.color;
         self.$http({'method': 'GET', 'url': url}).
             success(function(data, status, headers, config) {

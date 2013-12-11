@@ -21,16 +21,14 @@ class King extends Tile
             }
         }
 
-        $modifier = $this->getCurrentPlayer() == self::PLAYER_WHITE ? 1 : -1;
-
         if($this->isCastlingPossible('short'))
         {
-            $moves[] = array('x' => $this->x + (2 * $modifier), 'y' => $this->y);
+            $moves[] = array('x' => $this->x + 2, 'y' => $this->y);
         }
 
         if($this->isCastlingPossible('long'))
         {
-            $moves[] = array('x' => $this->x - (2 * $modifier), 'y' => $this->y);
+            $moves[] = array('x' => $this->x - 2, 'y' => $this->y);
         }
 
         return $moves;
@@ -46,8 +44,8 @@ class King extends Tile
             return false;
         }
 
-        $kingX = $player == self::PLAYER_WHITE ? 4 : 3;
-        $y = 0;
+        $kingX = 4;
+        $y = $player == self::PLAYER_WHITE ? 0 : 7;
 
 //         if($this->isAttacked($kingX, $y))
 //         {
@@ -62,7 +60,7 @@ class King extends Tile
         else
         {
             $xMin = 1;
-            $xMax = 3;
+            $xMax = 4;
         }
 
         for($x = $xMin; $x <= $xMax; $x++)

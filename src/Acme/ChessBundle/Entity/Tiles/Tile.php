@@ -18,7 +18,7 @@ abstract class Tile
 
     protected $y = null;
 
-    protected $player = null;
+    protected $currentPlayer = null;
 
     protected $lastMove = null;
 
