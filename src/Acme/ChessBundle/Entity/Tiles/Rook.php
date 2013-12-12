@@ -4,6 +4,13 @@ namespace Acme\ChessBundle\Entity\Tiles;
 
 class Rook extends Tile
 {
+    private $moves = array(
+        array('x' =>  1, 'y' =>  0),
+        array('x' => -1, 'y' =>  0),
+        array('x' =>  0, 'y' =>  1),
+        array('x' =>  0, 'y' => -1),
+    );
+
     public function getName()
     {
         return 'rook';
@@ -11,7 +18,7 @@ class Rook extends Tile
 
     public function getMoves($mode = 'all')
     {
-        return $this->getLongMoves($this->straightMoves);
+        return $this->getLongMoves($this->moves);
     }
 
     protected function afterMove()
@@ -22,23 +29,14 @@ class Rook extends Tile
 
         $player = $this->getOwner();
 
-        if($this->x == 0 && $this->y == $this->getFirstLine())
+        if($this->x == 0 && $this->y == $this->board->getFirstLine($player))
         {
-            $castlings = $this->board->getCastlings();
-            $castlings[$player] = in_array($castlings[$player], array('both', 'short')) ? 'short' : 'none';
-            $this->board->setCastlings($castlings);
+            $this->board->blockCastling($player, 'long');
         }
-        elseif($this->x == self::BOARD_SIZE - 1 && $this->y == $this->getFirstLine())
+        elseif($this->x == $this->board->getLastColumn() && $this->y == $this->board->getFirstLine($player))
         {
-            $castlings = $this->board->getCastlings();
-            $castlings[$player] = in_array($castlings[$player], array('both', 'long')) ? 'long' : 'none';
-            $this->board->setCastlings($castlings);
+            $this->board->blockCastling($player, 'short');
         }
-    }
-
-    private function getFirstLine()
-    {
-        return ( $this->getOwner() == self::PLAYER_WHITE ? 0 : self::BOARD_SIZE - 1 );
     }
 
 }

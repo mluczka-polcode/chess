@@ -37,7 +37,7 @@ class DefaultController extends Controller
             $game = new Game();
             $game->setTableId($tableId);
 
-//             $this->save($game);
+            $this->save($game);
         }
 
         return $this->render('AcmeChessBundle:Default:table.html.twig', array(

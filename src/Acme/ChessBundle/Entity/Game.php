@@ -70,9 +70,26 @@ class Game
      */
     private $status = 'in_progress';
 
+    public function __construct()
+    {
+        $this->onLoad();
+    }
+
     /** @PostLoad */
     public function onLoad()
     {
+// $position = $this->getPosition();
+// foreach($position as &$row)
+// {
+//     foreach($row as &$field)
+//     {
+//         $field = '_';
+//     }
+// }
+// $position[0][0] = 'X';
+// $position[7][7] = 'x';
+// $this->setPosition($position);
+
         $this->board = new Chessboard();
         $this->board->setPosition($this->getPosition());
         $this->board->setLastMove($this->getLastMove());
@@ -331,9 +348,12 @@ class Game
         {
             $gameState['position'] = $this->reversePosition($gameState['position']);
             $gameState['possibleMoves'] = $this->reverseMoves($gameState['possibleMoves']);
-            foreach($gameState['lastMove'] as &$coord)
+            if(!empty($gameState['lastMove']))
             {
-                $coord = $this->getReverseCoord($coord);
+                foreach($gameState['lastMove'] as &$coord)
+                {
+                    $coord = $this->getReverseCoord($coord);
+                }
             }
         }
 
@@ -384,28 +404,11 @@ class Game
 
     public function moveTile($fromX, $fromY, $toX, $toY)
     {
-        if($this->getCurrentPlayer() == self::PLAYER_BLACK)
-        {
-            $fromX = $this->getReverseCoord($fromX);
-            $fromY = $this->getReverseCoord($fromY);
-            $toX = $this->getReverseCoord($toX);
-            $toY = $this->getReverseCoord($toY);
-        }
-
-        $coordsFrom = array(
-            'x' => $fromX,
-            'y' => $fromY,
-        );
-
-        $coordsTo = array(
-            'x' => $toX,
-            'y' => $toY,
-        );
+        list($coordsFrom, $coordsTo) = $this->parseMoveCoords($fromX, $fromY, $toX, $toY);
 
         $this->board->move($coordsFrom, $coordsTo);
 
         $this->setPosition($this->board->getPosition());
-//         $this->setLastMove($this->board->getLastMove());
         $this->setCastlings($this->board->getCastlings());
 
         $this->log .= $this->board->getMoveLog();
@@ -428,12 +431,40 @@ class Game
             }
             $this->setStatus($status);
         }
+        elseif($this->board->isTie())
+        {
+            $this->setStatus('tie');
+            return;
+        }
         elseif($checked)
         {
             $this->log .= '+';
         }
 
         $this->log .= "\n";
+    }
+
+    private function parseMoveCoords($fromX, $fromY, $toX, $toY)
+    {
+        if($this->getCurrentPlayer() == self::PLAYER_BLACK)
+        {
+            $fromX = $this->getReverseCoord($fromX);
+            $fromY = $this->getReverseCoord($fromY);
+            $toX = $this->getReverseCoord($toX);
+            $toY = $this->getReverseCoord($toY);
+        }
+
+        $coordsFrom = array(
+            'x' => $fromX,
+            'y' => $fromY,
+        );
+
+        $coordsTo = array(
+            'x' => $toX,
+            'y' => $toY,
+        );
+
+        return array($coordsFrom, $coordsTo);
     }
 
     private function reversePosition($data)

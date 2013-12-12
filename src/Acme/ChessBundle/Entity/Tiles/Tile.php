@@ -6,10 +6,6 @@ use Acme\ChessBundle\Entity;
 
 abstract class Tile
 {
-    const BOARD_SIZE = 8;
-    const PLAYER_WHITE = 'white';
-    const PLAYER_BLACK = 'black';
-
     protected $board;
 
     protected $position = array();
@@ -21,20 +17,6 @@ abstract class Tile
     protected $moveLog = '';
 
     protected $columnLetters = 'abcdefgh';
-
-    protected $diagonalMoves = array(
-        array('x' => 1,  'y' =>  1),
-        array('x' => 1,  'y' => -1),
-        array('x' => -1, 'y' =>  1),
-        array('x' => -1, 'y' => -1),
-    );
-
-    protected $straightMoves = array(
-        array('x' =>  1, 'y' =>  0),
-        array('x' => -1, 'y' =>  0),
-        array('x' =>  0, 'y' =>  1),
-        array('x' =>  0, 'y' => -1),
-    );
 
     public function setBoard($board)
     {
@@ -114,16 +96,16 @@ abstract class Tile
     {
         if(!in_array($this->getDestination(), $this->getMoves()))
         {
-print_r($this->getName());
-echo "<br />\n";
-print_r($this->getCoords());
-echo "<br />\n";
-print_r($this->getDestination());
-echo "<br />\n";
-print_r($this->getMoves());
-echo "<br />\n";
-print_r($this->board->getLastMove());
-echo "<br />\n";
+// print_r($this->getName());
+// echo "<br />\n";
+// print_r($this->getCoords());
+// echo "<br />\n";
+// print_r($this->getDestination());
+// echo "<br />\n";
+// print_r($this->getMoves());
+// echo "<br />\n";
+// print_r($this->board->getLastMove());
+// echo "<br />\n";
             throw new \Exception('Invalid move!');
         }
     }
@@ -158,42 +140,20 @@ echo "<br />\n";
 
     protected function canMoveOrBeat($coords)
     {
-        $x = $coords['x'];
-        $y = $coords['y'];
-        return ( $this->isValidField($x, $y) && ($this->isEmptyField($x, $y) || $this->isEnemyTile($x, $y)) );
-    }
-
-    protected function isValidField($x, $y)
-    {
-        return isset($this->position[$y], $this->position[$y][$x]);
-    }
-
-    protected function isEmptyField($x, $y)
-    {
-        return ( $this->isValidField($x, $y) && $this->position[$y][$x] == '_' );
-    }
-
-    protected function isOwnTile($x, $y)
-    {
-        if(!$this->isValidField($x, $y) || $this->isEmptyField($x, $y))
+        if(!$this->board->validCoords($coords))
         {
             return false;
         }
-
-        $player = $this->getOwner();
-        if($player == self::PLAYER_WHITE)
-        {
-            return $this->position[$y][$x] == strtoupper($this->position[$y][$x]);
-        }
-        elseif($player == self::PLAYER_BLACK)
-        {
-            return $this->position[$y][$x] == strtolower($this->position[$y][$x]);
-        }
+        return $this->board->isFieldEmpty($coords) || $this->isEnemyTile($coords);
     }
 
-    protected function isEnemyTile($x, $y)
+    protected function isEnemyTile($coords)
     {
-        return ( $this->isValidField($x, $y) && !$this->isEmptyField($x, $y) && !$this->isOwnTile($x, $y) );
+        if(!$this->board->validCoords($coords))
+        {
+            return false;
+        }
+        return $this->board->getTileOwner($coords) == $this->board->getOpponent($this->getOwner());
     }
 
     protected function getLongMoves($directions)
@@ -203,20 +163,25 @@ echo "<br />\n";
         foreach($directions as $move)
         {
             $i = 1;
-            $toX = $this->x + ($i * $move['x']);
-            $toY = $this->y + ($i * $move['y']);
+            $destination = array(
+                'x' => $this->x + ($i * $move['x']),
+                'y' => $this->y + ($i * $move['y']),
+            );
 
-            while($this->isEmptyField($toX, $toY))
+            while($this->board->isFieldEmpty($destination))
             {
-                $moves[] = array('x' => $toX, 'y' => $toY);
+                $moves[] = $destination;
+
                 $i += 1;
-                $toX = $this->x + ($i * $move['x']);
-                $toY = $this->y + ($i * $move['y']);
+                $destination = array(
+                    'x' => $this->x + ($i * $move['x']),
+                    'y' => $this->y + ($i * $move['y']),
+                );
             }
 
-            if($this->isEnemyTile($toX, $toY))
+            if($this->isEnemyTile($destination))
             {
-                $moves[] = array('x' => $toX, 'y' => $toY);
+                $moves[] = $destination;
             }
         }
 

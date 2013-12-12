@@ -55,9 +55,9 @@ class King extends Tile
         }
 
         $kingX = 4;
-        $y = $player == self::PLAYER_WHITE ? 0 : 7;
+        $y = $this->board->getFirstLine($player);
 
-        if($this->board->isFieldAttacked($this->getCoords(), $player))
+        if($this->x != $kingX || $this->y != $y || $this->board->isFieldAttacked($this->getCoords(), $player))
         {
             return false;
         }
@@ -70,17 +70,22 @@ class King extends Tile
         else
         {
             $xMin = 1;
-            $xMax = 4;
+            $xMax = 3;
         }
 
         for($x = $xMin; $x <= $xMax; $x++)
         {
-            if(!$this->isEmptyField($x, $y) && $x != $kingX)
+            $coords = array(
+                'x' => $x,
+                'y' => $y,
+            );
+
+            if(!$this->board->isFieldEmpty($coords))
             {
                 return false;
             }
 
-            if($x > 1 && $this->board->isFieldAttacked($this->getCoords(), $player))
+            if($x > 1 && $this->board->isFieldAttacked($coords, $player))
             {
                 return false;
             }

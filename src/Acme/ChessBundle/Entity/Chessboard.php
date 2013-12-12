@@ -11,6 +11,9 @@ class Chessboard
     const PLAYER_WHITE = 'white';
     const PLAYER_BLACK = 'black';
 
+    const MAX_POSITION_REPEATS = 3;
+    const MAX_REVERSIBLE_MOVES = 50;
+
     private $position = array();
 
     private $tiles = array();
@@ -20,11 +23,6 @@ class Chessboard
     private $castlings;
 
     private $moveLog = '';
-
-    public function getPosition()
-    {
-        return $this->position;
-    }
 
     public function setPosition($position)
     {
@@ -43,11 +41,16 @@ class Chessboard
                     'x' => $x,
                     'y' => $y,
                 ));
-                $tile->setOwner($this->getTileOwner($field));
+                $tile->setOwner($this->getFieldOwner($field));
 
                 $this->tiles[] = $tile;
             }
         }
+    }
+
+    public function getPosition()
+    {
+        return $this->position;
     }
 
     public function setLastMove($lastMove)
@@ -106,7 +109,121 @@ class Chessboard
         $tile->move($destination);
 
         $this->setPosition($tile->getPosition());
+        $this->updateCastlings();
         $this->setMoveLog($tile->getMoveLog());
+    }
+
+    public function isKingAttacked($player)
+    {
+        $kingCoords = $this->getKingCoords($player);
+        return $this->isFieldAttacked($kingCoords, $player);
+    }
+
+    public function validCoords($coords)
+    {
+        return $this->isValidCoord($coords['x']) && $this->isValidCoord($coords['y']);
+    }
+
+    public function isFieldEmpty($coords)
+    {
+        return $this->validCoords($coords) && $this->position[$coords['y']][$coords['x']] == '_';
+    }
+
+    public function getTileOwner($coords)
+    {
+        if(!$this->validCoords($coords))
+        {
+            return '';
+        }
+        $tile = $this->getTileByCoords($coords);
+        return $tile->getOwner();
+    }
+
+    public function isFieldAttacked($coords, $player)
+    {
+        $opponent = $this->getOpponent($player);
+        foreach($this->tiles as &$tile)
+        {
+            if($tile->getOwner() == $opponent && $tile->canAttack($coords))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function getOpponent($player)
+    {
+        return $player == self::PLAYER_WHITE ? self::PLAYER_BLACK : self::PLAYER_WHITE;
+    }
+
+    public function getFirstLine($player)
+    {
+        return $player == self::PLAYER_WHITE ? 0 : self::BOARD_SIZE - 1;
+    }
+
+    public function getLastLine($player)
+    {
+        return $player == self::PLAYER_WHITE ? self::BOARD_SIZE - 1 : 0;
+    }
+
+    public function getLastColumn()
+    {
+        return self::BOARD_SIZE - 1;
+    }
+
+    public function isWhitePlayer($player)
+    {
+        return $player == self::PLAYER_WHITE;
+    }
+
+    public function isTie()
+    {
+        return (
+            !$this->sufficientTiles()
+            || $this->positionRepeatsCount() >= self::MAX_POSITION_REPEATS
+            || $this->reversibleMovesCount() >= self::MAX_REVERSIBLE_MOVES
+        );
+    }
+
+    private function sufficientTiles()
+    {
+        $lightTileAlreadyFound = false;
+
+        foreach($this->tiles as &$tile)
+        {
+            $name = $tile->getName();
+
+            if(in_array($name, array('pawn', 'rook', 'queen')))
+            {
+                return true;
+            }
+
+            if(in_array($name, array('knight', 'bishop')))
+            {
+                if($lightTileAlreadyFound)
+                {
+                    return true;
+                }
+
+                $lightTileAlreadyFound = true;
+            }
+        }
+
+        return false;
+    }
+
+    private function positionRepeatsCount()
+    {
+        // TODO: implement
+        return 0;
+    }
+
+    private function reversibleMovesCount()
+    {
+        // TODO: implement
+        return 0;
     }
 
     private function getTileEntity($tile)
@@ -125,14 +242,14 @@ class Chessboard
         }
     }
 
-    private function getTileOwner($field)
+    private function getFieldOwner($field)
     {
         if($field == '_')
         {
             return '';
         }
 
-        return ( strtoupper($field) == $field ? self::PLAYER_WHITE : self::PLAYER_BLACK );
+        return strtoupper($field) == $field ? self::PLAYER_WHITE : self::PLAYER_BLACK;
     }
 
     private function getTileByCoords($coords)
@@ -145,7 +262,7 @@ class Chessboard
             }
         }
 
-        throw new \Exception('Invalid tile coords!');
+        throw new \Exception('Invalid tile coords: ' . $coords['x'] . ', ' . $coords['y']);
     }
 
     private function getAllowedMoves($player, $tileCoords, $tileMoves)
@@ -168,24 +285,9 @@ class Chessboard
         return $result;
     }
 
-    public function isFieldAttacked($coords, $player)
+    private function isValidCoord($coord)
     {
-        $opponent = $this->getOpponent($player);
-        foreach($this->tiles as &$tile)
-        {
-            if($tile->getOwner() == $opponent && $tile->canAttack($coords))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public function isKingAttacked($player)
-    {
-        $kingCoords = $this->getKingCoords($player);
-        return $this->isFieldAttacked($kingCoords, $player);
+        return preg_match('/\d/', $coord) && $coord >= 0 && $coord < self::BOARD_SIZE;
     }
 
     private function getKingCoords($player)
@@ -201,9 +303,41 @@ class Chessboard
         throw new \Exception('Failed to find king for player "' . $player . '"');
     }
 
-    public function getOpponent($player)
+    private function updateCastlings()
     {
-        return ( $player == self::PLAYER_WHITE ? self::PLAYER_BLACK : self::PLAYER_WHITE );
+        $position = $this->getPosition();
+
+        if($position[0][0] != 'R')
+        {
+            $this->blockCastling(self::PLAYER_WHITE, 'long');
+        }
+
+        if($position[0][7] != 'R')
+        {
+            $this->blockCastling(self::PLAYER_WHITE, 'short');
+        }
+
+        if($position[7][0] != 'r')
+        {
+            $this->blockCastling(self::PLAYER_BLACK, 'long');
+        }
+
+        if($position[7][7] != 'r')
+        {
+            $this->blockCastling(self::PLAYER_BLACK, 'short');
+        }
+    }
+
+    public function blockCastling($player, $direction)
+    {
+        $castlings = $this->getCastlings();
+        $castlings[$player] = $castlings[$player] == 'both' ? $this->oppositeCastling($direction) : 'none';
+        $this->setCastlings($castlings);
+    }
+
+    private function oppositeCastling($direction)
+    {
+        return $direction == 'short' ? 'long' : 'short';
     }
 
 }
