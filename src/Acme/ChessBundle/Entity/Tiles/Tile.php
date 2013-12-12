@@ -3,6 +3,7 @@
 namespace Acme\ChessBundle\Entity\Tiles;
 
 use Acme\ChessBundle\Entity;
+use Acme\ChessBundle\Exception\ChessException;
 
 abstract class Tile
 {
@@ -96,17 +97,7 @@ abstract class Tile
     {
         if(!in_array($this->getDestination(), $this->getMoves()))
         {
-// print_r($this->getName());
-// echo "<br />\n";
-// print_r($this->getCoords());
-// echo "<br />\n";
-// print_r($this->getDestination());
-// echo "<br />\n";
-// print_r($this->getMoves());
-// echo "<br />\n";
-// print_r($this->board->getLastMove());
-// echo "<br />\n";
-            throw new \Exception('Invalid move!');
+            throw new ChessException('Invalid move', 1);
         }
     }
 
@@ -140,20 +131,18 @@ abstract class Tile
 
     protected function canMoveOrBeat($coords)
     {
-        if(!$this->board->validCoords($coords))
-        {
-            return false;
-        }
-        return $this->board->isFieldEmpty($coords) || $this->isEnemyTile($coords);
+        return (
+            $this->board->validCoords($coords)
+            && ( $this->board->isFieldEmpty($coords) || $this->isEnemyTile($coords) )
+        );
     }
 
     protected function isEnemyTile($coords)
     {
-        if(!$this->board->validCoords($coords))
-        {
-            return false;
-        }
-        return $this->board->getTileOwner($coords) == $this->board->getOpponent($this->getOwner());
+        return (
+            $this->board->validCoords($coords)
+            && $this->board->getTileOwner($coords) == $this->board->getOpponent($this->getOwner())
+        );
     }
 
     protected function getLongMoves($directions)

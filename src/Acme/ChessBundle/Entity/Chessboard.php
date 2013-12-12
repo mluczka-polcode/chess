@@ -3,6 +3,7 @@
 namespace Acme\ChessBundle\Entity;
 
 use Acme\ChessBundle\Entity\Tiles;
+use Acme\ChessBundle\Exception\ChessException;
 
 class Chessboard
 {
@@ -238,7 +239,7 @@ class Chessboard
             case 'r': return new Tiles\Rook;
             case 'q': return new Tiles\Queen;
             case 'x': return new Tiles\King;
-            default: throw new \Exception('Invalid tile: ' . $tile);
+            default: throw new ChessException('Invalid tile: ' . $tile);
         }
     }
 
@@ -262,7 +263,7 @@ class Chessboard
             }
         }
 
-        throw new \Exception('Invalid tile coords: ' . $coords['x'] . ', ' . $coords['y']);
+        throw new ChessException('Invalid tile coords: ' . $coords['x'] . ', ' . $coords['y']);
     }
 
     private function getAllowedMoves($player, $tileCoords, $tileMoves)
@@ -300,7 +301,7 @@ class Chessboard
             }
         }
 
-        throw new \Exception('Failed to find king for player "' . $player . '"');
+        throw new ChessException('Failed to find king for player "' . $player . '"');
     }
 
     private function updateCastlings()

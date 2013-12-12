@@ -4,6 +4,8 @@ namespace Acme\ChessBundle\Entity\Tiles;
 
 class Pawn extends Tile
 {
+    private $moveDirection;
+
     public function getName()
     {
         return 'pawn';
@@ -11,18 +13,15 @@ class Pawn extends Tile
 
     public function getMoves($mode = 'all')
     {
-        $x = $this->x;
-        $y = $this->y;
-
         $moves = array();
 
-        $modifier = $this->board->isWhitePlayer($this->getOwner()) ? 1 : -1;
+        $this->moveDirection = $this->board->isWhitePlayer($this->getOwner()) ? 1 : -1;
 
         if(in_array($mode, array('move', 'all')))
         {
             $destination = array(
-                'x' => $x,
-                'y' => $y + $modifier,
+                'x' => $this->x,
+                'y' => $this->y + $this->moveDirection,
             );
 
             if($this->board->isFieldEmpty($destination))
@@ -30,11 +29,11 @@ class Pawn extends Tile
                 $moves[] = $destination;
 
                 $destination = array(
-                    'x' => $x,
-                    'y' => $y + (2 * $modifier),
+                    'x' => $this->x,
+                    'y' => $this->y + (2 * $this->moveDirection),
                 );
 
-                if($y == $this->board->getFirstLine($this->getOwner()) + $modifier && $this->board->isFieldEmpty($destination))
+                if($this->isStartingLine() && $this->board->isFieldEmpty($destination))
                 {
                     $moves[] = $destination;
                 }
@@ -45,12 +44,12 @@ class Pawn extends Tile
         {
             $beatMoves = array(
                 array(
-                    'x' => $x - 1,
-                    'y' => $y + $modifier,
+                    'x' => $this->x - 1,
+                    'y' => $this->y + $this->moveDirection,
                 ),
                 array(
-                    'x' => $x + 1,
-                    'y' => $y + $modifier,
+                    'x' => $this->x + 1,
+                    'y' => $this->y + $this->moveDirection,
                 ),
             );
 
@@ -64,6 +63,11 @@ class Pawn extends Tile
         }
 
         return $moves;
+    }
+
+    protected function isStartingLine()
+    {
+        return $this->y == $this->board->getFirstLine($this->getOwner()) + $this->moveDirection;
     }
 
     protected function updateMoveLog()
@@ -119,11 +123,11 @@ class Pawn extends Tile
         );
 
         return (
-            $lastMove['fromX'] == $destination['x']
-            && $lastMove['fromY'] + $lastMove['toY'] == 2 * $destination['y']
+            $this->isPawn($lastDestination)
             && $this->isEnemyTile($lastDestination)
-            && $this->isPawn($lastDestination)
             && abs($lastMove['toY'] - $lastMove['fromY']) == 2
+            && $lastMove['fromX'] == $destination['x']
+            && $lastMove['fromY'] + $lastMove['toY'] == 2 * $destination['y']
         );
     }
 

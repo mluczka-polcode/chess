@@ -3,9 +3,12 @@
 namespace Acme\ChessBundle\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
+
 use Acme\ChessBundle\Entity\Game;
+use Acme\ChessBundle\Exception\ChessException;
 
 class DefaultController extends Controller
 {
@@ -45,10 +48,18 @@ class DefaultController extends Controller
         ));
     }
 
-    public function moveTileAction($tableId, $fromX, $fromY, $toX, $toY)
+    public function moveTileAction($tableId)
     {
-        $game = $this->getGame($tableId);
+        $request = $this->get('request');
 
+        $fromX = $request->get('fromX');
+        $fromY = $request->get('fromY');
+        $toX = $request->get('toX');
+        $toY = $request->get('toY');
+
+//         print_r($request->all());
+
+        $game = $this->getGame($tableId);
         $player = $game->getCurrentPlayer();
 
         $game->moveTile($fromX, $fromY, $toX, $toY);

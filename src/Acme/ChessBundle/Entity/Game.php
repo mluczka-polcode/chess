@@ -5,6 +5,7 @@ namespace Acme\ChessBundle\Entity;
 use Doctrine\ORM\Mapping as ORM;
 
 use Acme\ChessBundle\Entity\Tiles;
+use Acme\ChessBundle\Exception\ChessException;
 
 /**
  * Game
@@ -404,6 +405,11 @@ class Game
 
     public function moveTile($fromX, $fromY, $toX, $toY)
     {
+        if($this->getStatus() != 'in_progress')
+        {
+            throw new ChessException('Game already finished', ChessException::INVALID_PARAMS);
+        }
+
         list($coordsFrom, $coordsTo) = $this->parseMoveCoords($fromX, $fromY, $toX, $toY);
 
         $this->board->move($coordsFrom, $coordsTo);
@@ -506,7 +512,7 @@ class Game
     {
         if(!preg_match('/\d/', $coord) || $coord < 0 || $coord >= self::BOARD_SIZE)
         {
-            throw new \Exception('Invalid move coords!');
+            throw new \Exception('Invalid coord: "'.$coord.'"');
         }
 
         $coord = (self::BOARD_SIZE - 1) - $coord;

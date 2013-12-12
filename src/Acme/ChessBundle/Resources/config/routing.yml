@@ -11,8 +11,9 @@ chess_table:
     defaults: { _controller: AcmeChessBundle:Default:table }
 
 chess_moveTile:
-    pattern:  /chess/moveTile/{tableId}/{fromX},{fromY}-{toX},{toY}
+    pattern:  /chess/moveTile/{tableId}
     defaults: { _controller: AcmeChessBundle:Default:moveTile }
+    methods:  [POST]
 
 chess_checkGameState:
     pattern:  /chess/checkGameState/{tableId}/{player}
@@ -21,3 +22,4 @@ chess_checkGameState:
 chess_proposeTie:
     pattern:  /chess/proposeTie/{tableId}/{player}
     defaults: { _controller: AcmeChessBundle:Default:proposeTie }
+    methods:  [POST]

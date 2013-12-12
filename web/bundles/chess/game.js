@@ -8,6 +8,17 @@ var ChessGame = function(gameState) {
 
     var checkStateTimer = null;
 
+    var blockRefresh = false;
+
+    var selectedTile = {
+        x : -1,
+        y : -1
+    };
+
+    var possibleMoves = [];
+
+    var checkStateTimer = null;
+
     self.state = gameState;
 
     self.$http = null;
@@ -73,40 +84,6 @@ var ChessGame = function(gameState) {
 
         return classes.join(' ');
     };
-
-    var selectedTile = {
-        x : -1,
-        y : -1
-    };
-
-    var possibleMoves = [];
-
-    var knightMoves = [
-        {'x':  1, 'y':  2},
-        {'x':  2, 'y':  1},
-        {'x':  2, 'y': -1},
-        {'x':  1, 'y': -2},
-        {'x': -1, 'y': -2},
-        {'x': -2, 'y': -1},
-        {'x': -2, 'y':  1},
-        {'x': -1, 'y':  2}
-    ];
-
-    var diagonalMoves = [
-        {'x': 1,  'y':  1},
-        {'x': 1,  'y': -1},
-        {'x': -1, 'y':  1},
-        {'x': -1, 'y': -1}
-    ];
-
-    var straightMoves = [
-        {'x':  1, 'y':  0},
-        {'x': -1, 'y':  0},
-        {'x':  0, 'y':  1},
-        {'x':  0, 'y': -1}
-    ]
-
-    var checkStateTimer = null;
 
     var getPossibleMoves = function(x, y) {
         if(!self.state.possibleMoves[x])
@@ -207,17 +184,32 @@ var ChessGame = function(gameState) {
     };
 
     var moveSelectedTile = function(x, y) {
-        var url = ajaxUrl + 'moveTile/' + self.state.tableId + '/' + selectedTile.x + ',' + selectedTile.y + '-' + x + ',' + y;
-        self.$http({'method': 'GET', 'url': url}).
-            success(function(data, status, headers, config) {
-                clearTimeout(checkStateTimer);
-                unselectTile();
-                self.state = data;
-                checkStateTimer = setTimeout(checkGameState, CHECK_GAMESTATE_TIMEOUT);
-            }).
-            error(function(data, status, headers, config) {
-                alert(data);
-            });
+        blockRefresh = true;
+
+        var url = ajaxUrl + 'moveTile/' + self.state.tableId;
+        var moveData = {
+            'fromX' : selectedTile.x,
+            'fromY' : selectedTile.y,
+            'toX'   : x,
+            'toY'   : y
+        };
+
+        self.$http({
+            'method': 'POST',
+            'url': url,
+            'data': 'fromX=' + selectedTile.x + '&fromY=' + selectedTile.y + '&toX=' + x + '&toY=' + y,
+            'headers': {'Content-Type': 'application/x-www-form-urlencoded'}
+        }).success(function(data, status, headers, config) {
+            blockRefresh = false;
+            clearTimeout(checkStateTimer);
+            unselectTile();
+            self.state = data;
+            checkStateTimer = setTimeout(checkGameState, CHECK_GAMESTATE_TIMEOUT);
+        }).
+        error(function(data, status, headers, config) {
+            blockRefresh = false;
+            alert(data);
+        });
     };
 
     var switchPlayer = function() {
@@ -240,7 +232,10 @@ var ChessGame = function(gameState) {
         var url = ajaxUrl + 'checkGameState/' + self.state.tableId + '/' + self.state.color;
         self.$http({'method': 'GET', 'url': url}).
             success(function(data, status, headers, config) {
-                self.state = data;
+                if(!blockRefresh)
+                {
+                    self.state = data;
+                }
             }).
             error(function(data, status, headers, config) {
                 alert(data);
