@@ -192,6 +192,11 @@ class Game
         $log = explode("\n", str_replace("\r", '', trim($this->log)));
         for($i = 0; $i < count($log); $i += 2)
         {
+            $log[$i] = $this->getFormattedMove($log[$i], 'white');
+            if(!empty($log[$i + 1]))
+            {
+                $log[$i + 1] = $this->getFormattedMove($log[$i + 1], 'black');
+            }
             $result[] = $log[$i] . (!empty($log[$i + 1]) ? ' ' . $log[$i + 1] : '');
         }
 
@@ -298,7 +303,7 @@ class Game
     {
         if(!$this->currentPlayer)
         {
-            if(trim($this->log)=='')
+            if(trim($this->log) == '')
             {
                 $this->currentPlayer = self::PLAYER_WHITE;
             }
@@ -590,6 +595,39 @@ class Game
             $player = $this->getCurrentPlayer();
         }
         return $player == self::PLAYER_WHITE ? self::PLAYER_BLACK : self::PLAYER_WHITE;
+    }
+
+    private function getFormattedMove($move, $color)
+    {
+        if(in_array($move, array('O-O', 'O-O-O')))
+        {
+            return $move;
+        }
+
+        if(strtoupper($move[0]) != $move[0])
+        {
+            $pawn = $color == 'white' ? '&#9817;' : '&#9823;';
+            return $pawn . $move;
+        }
+
+        $convert = array(
+            'white' => array(
+                'K' => '&#9816;',
+                'B' => '&#9815;',
+                'R' => '&#9814;',
+                'Q' => '&#9813;',
+                'X' => '&#9812;',
+            ),
+            'black' => array(
+                'K' => '&#9822;',
+                'B' => '&#9821;',
+                'R' => '&#9820;',
+                'Q' => '&#9819;',
+                'X' => '&#9818;',
+            ),
+        );
+
+        return str_replace(array_keys($convert[$color]), array_values($convert[$color]), $move);
     }
 
     private function convertLetterToNumber($letter)

@@ -33,9 +33,12 @@ button { font-weight: bold; border: none; color: #00F; background: none; cursor:
 #chessboard .tile.q { background-position:  -46px -49px; }
 #chessboard .tile.x { background-position:    2px -47px; }
 
-#chessLog { width: 150px; margin: 0 auto; font-family: monospace; }
+#chessLog { width: 250px; margin: 0 auto; font-size: 20px; font-family: monospace; }
 
-#advanceDialog { position: absolute; top: 245px; padding: 20px; margin-left: 315px; font-weight: bold; border: 1px solid #000; background: #FFF; }
+#advanceDialog {
+    position: absolute; top: 245px; padding: 20px; margin-left: 315px;
+    font-weight: bold; border: 1px solid #000; background: #FFF;
+}
 
 .positive { color: #090; }
 .negative { color: #F00; }

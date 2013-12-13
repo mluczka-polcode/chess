@@ -8,8 +8,6 @@ var ChessGame = function(gameState) {
 
     var checkStateTimer = null;
 
-    var blockRefresh = false;
-
     var selectedTile = {
         x : -1,
         y : -1
@@ -329,8 +327,6 @@ var ChessGame = function(gameState) {
             return;
         }
 
-        blockRefresh = true;
-
         var postData = 'fromX=' + selectedTile.x + '&fromY=' + selectedTile.y + '&toX=' + x + '&toY=' + y + '&advancePawnTo=' + advancePawnTo;
 
         self.$http({
@@ -339,14 +335,12 @@ var ChessGame = function(gameState) {
             'data': postData,
             'headers': {'Content-Type': 'application/x-www-form-urlencoded'}
         }).success(function(data, status, headers, config) {
-            blockRefresh = false;
             clearTimeout(checkStateTimer);
             unselectTile();
             self.state = data;
             checkStateTimer = setTimeout(checkGameState, CHECK_GAMESTATE_TIMEOUT);
         }).
         error(function(data, status, headers, config) {
-            blockRefresh = false;
             alert(data);
         });
     };
@@ -374,10 +368,7 @@ var ChessGame = function(gameState) {
         var url = ajaxUrl + 'checkGameState/' + self.state.tableId + '/' + self.state.color;
         self.$http({'method': 'GET', 'url': url}).
             success(function(data, status, headers, config) {
-                if(!blockRefresh)
-                {
-                    self.state = data;
-                }
+                self.state = data;
             }).
             error(function(data, status, headers, config) {
                 alert(data);

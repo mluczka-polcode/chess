@@ -17,14 +17,13 @@
 
 {% block content %}
 <div ng-controller="chessboard">
-    <h1>Chess - table</h1>
+    <h1><a href="{{ path('chess_homepage') }}">Chess</a> - table</h1>
+    <br />
     <p>
-        Links to this table:
-        <a href="{{ path('chess_table', {'tableId': gamestate.tableId, 'player': 'white' }) }}">white</a>,
-        <a href="{{ path('chess_table', {'tableId': gamestate.tableId, 'player': 'black' }) }}">black</a>.
-        Copy one of them and send to your opponent.
+        Your color: <b>{{ gamestate.color }}</b>
+        <br />
+        <a href="{{ path('chess_table', {'tableId': gamestate.tableId, 'player': gamestate.color == 'white' ? 'black' : 'white' }) }}">Link for the other player</a> (copy its URL and send to your opponent)
     </p>
-    <p>your color: {{ gamestate.color }}</p>
     <table id="chessboard">
         <tr ng-repeat="row in game.state.position | reverse track by $index">
             <td ng-repeat="tile in row track by $index" class="ng-class:game.getFieldClass($index, 7 - $parent.$index)" ng-click="game.onfieldclick($index, 7 - $parent.$index);">
@@ -57,7 +56,7 @@
         </tr>
     </table>
     <ol id="chessLog" ng-if="game.state.log">
-        <li ng-repeat="move in game.state.log" ng-bind="move"></li>
+        <li ng-repeat="move in game.state.log" ng-bind-html="move"></li>
     </ol>
     <div id="advanceDialog" ng-if="game.showAdvanceDialog">
         Advance pawn to:<br />

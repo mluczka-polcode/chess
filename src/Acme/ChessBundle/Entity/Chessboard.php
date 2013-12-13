@@ -191,13 +191,13 @@ class Chessboard
     public function isTie()
     {
         return (
-            !$this->sufficientTiles()
+            !$this->sufficientTilesForCheckmate()
             || $this->positionRepeatsCount() >= self::MAX_POSITION_REPEATS
             || $this->reversibleMovesCount() >= self::MAX_REVERSIBLE_MOVES
         );
     }
 
-    private function sufficientTiles()
+    private function sufficientTilesForCheckmate()
     {
         $lightTileAlreadyFound = false;
 
