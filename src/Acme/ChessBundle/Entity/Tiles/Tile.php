@@ -19,6 +19,8 @@ abstract class Tile
 
     protected $columnLetters = 'abcdefgh';
 
+    protected $didBeat = false;
+
     public function setBoard($board)
     {
         $this->board = $board;
@@ -68,6 +70,7 @@ abstract class Tile
     {
         $this->setDestination($destination);
         $this->validateMove();
+        $this->checkBeating();
         $this->updateMoveLog();
         $this->updatePosition();
         $this->afterMove();
@@ -77,6 +80,11 @@ abstract class Tile
     public function getMoveLog()
     {
         return $this->moveLog;
+    }
+
+    public function didBeat()
+    {
+        return $this->didBeat;
     }
 
     abstract public function getName();
@@ -98,6 +106,14 @@ abstract class Tile
         if(!in_array($this->getDestination(), $this->getMoves()))
         {
             throw new ChessException('Invalid move', ChessException::INVALID_INPUT);
+        }
+    }
+
+    protected function checkBeating()
+    {
+        if(!$this->board->isFieldEmpty($this->getDestination()))
+        {
+            $this->didBeat = true;
         }
     }
 

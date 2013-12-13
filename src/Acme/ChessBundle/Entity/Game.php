@@ -16,6 +16,9 @@ class Game
     const PLAYER_WHITE = 'white';
     const PLAYER_BLACK = 'black';
 
+    const MAX_POSITION_REPEATS = 3;
+    const MAX_REVERSIBLE_MOVES = 50;
+
     private $statusValues = array(
         'in_progress',
         'white_won',
@@ -23,14 +26,7 @@ class Game
         'tie',
     );
 
-    private $columnLetters = 'abcdefgh';
-
     private $board;
-
-    /**
-     * @var integer
-     */
-    private $fromX = null, $fromY = null, $toX = null, $toY = null;
 
     private $positionArray = array();
 
@@ -50,6 +46,11 @@ class Game
      * @var string
      */
     private $position = "RKBQXBKR\nPPPPPPPP\n________\n________\n________\n________\npppppppp\nrkbqxbkr";
+
+    /**
+     * @var string
+     */
+    private $history = '';
 
     /**
      * @var string
@@ -160,6 +161,30 @@ class Game
         $this->positionArray = $result;
 
         return $result;
+    }
+
+    /**
+     * Set history
+     *
+     * @param string $player
+     * @param string $status
+     * @return Game
+     */
+    public function setHistory($history)
+    {
+        $this->history = $history;
+
+        return $this;
+    }
+
+    /**
+     * Get history
+     *
+     * @return string
+     */
+    public function getHistory()
+    {
+        return $this->history;
     }
 
     /**
@@ -416,6 +441,11 @@ class Game
 
         $this->setPosition($this->board->getPosition());
         $this->setCastlings($this->board->getCastlings());
+        $this->addToHistory($this->getPosition());
+        if($this->board->wasIrreversibleMove())
+        {
+            $this->history .= "---\n";
+        }
 
         $this->log .= $this->board->getMoveLog();
 
@@ -437,10 +467,9 @@ class Game
             }
             $this->setStatus($status);
         }
-        elseif($this->board->isTie())
+        elseif($this->isTie())
         {
             $this->setStatus('tie');
-            return;
         }
         elseif($checked)
         {
@@ -448,6 +477,62 @@ class Game
         }
 
         $this->log .= "\n";
+    }
+
+    private function addToHistory($position)
+    {
+        $history = $this->getHistory();
+
+        foreach($position as $row)
+        {
+            foreach($row as $field)
+            {
+                $history .= $field;
+            }
+        }
+
+        $history .= "\n";
+
+        $this->setHistory($history);
+    }
+
+    private function isTie()
+    {
+        return (
+            !$this->board->sufficientTilesForCheckmate()
+            || $this->positionRepeatsCount() >= self::MAX_POSITION_REPEATS
+            || $this->reversibleMovesCount() >= self::MAX_REVERSIBLE_MOVES
+        );
+    }
+
+    private function positionRepeatsCount()
+    {
+        $count = 0;
+
+        $history = $this->getHistory();
+        $history = substr($history, strrpos($history, "---\n") + strlen("---\n"));
+        $history = explode("\n", trim($history));
+
+        $lastPosition = array_pop($history);
+        foreach($history as $position)
+        {
+            if($position == $lastPosition)
+            {
+                $count += 1;
+            }
+        }
+
+        echo 'positionRepeatsCount: ' . $count . "\n<br />";
+        return $count;
+    }
+
+    private function reversibleMovesCount()
+    {
+        $history = $this->getHistory();
+        $history = substr($history, strrpos($history, "---\n") + strlen("---\n"));
+        $history = explode("\n", trim($history));
+        echo 'reversibleMovesCount: ' . count($history) . "\n<br />";
+        return count($history);
     }
 
     public function updateTieProposal($player, $message)
@@ -632,7 +717,8 @@ class Game
 
     private function convertLetterToNumber($letter)
     {
-        return strpos($this->columnLetters, $letter);
+        $columnLetters = 'abcdefgh';
+        return strpos($columnLetters, $letter);
     }
 
 }

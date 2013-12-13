@@ -12,9 +12,6 @@ class Chessboard
     const PLAYER_WHITE = 'white';
     const PLAYER_BLACK = 'black';
 
-    const MAX_POSITION_REPEATS = 3;
-    const MAX_REVERSIBLE_MOVES = 50;
-
     private $position = array();
 
     private $tiles = array();
@@ -26,6 +23,8 @@ class Chessboard
     private $moveLog = '';
 
     private $advancePawnTo;
+
+    private $wasIrreversibleMove;
 
     public function setPosition($position)
     {
@@ -116,6 +115,13 @@ class Chessboard
         $this->setPosition($tile->getPosition());
         $this->updateCastlings();
         $this->setMoveLog($tile->getMoveLog());
+
+        $this->wasIrreversibleMove = $tile->getName() == 'pawn' || $tile->didBeat();
+    }
+
+    public function wasIrreversibleMove()
+    {
+        return $this->wasIrreversibleMove;
     }
 
     public function getTileToAdvanceTo()
@@ -188,16 +194,7 @@ class Chessboard
         return $player == self::PLAYER_WHITE;
     }
 
-    public function isTie()
-    {
-        return (
-            !$this->sufficientTilesForCheckmate()
-            || $this->positionRepeatsCount() >= self::MAX_POSITION_REPEATS
-            || $this->reversibleMovesCount() >= self::MAX_REVERSIBLE_MOVES
-        );
-    }
-
-    private function sufficientTilesForCheckmate()
+    public function sufficientTilesForCheckmate()
     {
         $lightTileAlreadyFound = false;
 
@@ -222,18 +219,6 @@ class Chessboard
         }
 
         return false;
-    }
-
-    private function positionRepeatsCount()
-    {
-        // TODO: implement
-        return 0;
-    }
-
-    private function reversibleMovesCount()
-    {
-        // TODO: implement
-        return 0;
     }
 
     private function getTileEntity($tile)

@@ -14,6 +14,8 @@ Acme\ChessBundle\Entity\Game:
         position:
             type: string
             length: '70'
+        history:
+            type: text
         log:
             type: text
         castlings:
