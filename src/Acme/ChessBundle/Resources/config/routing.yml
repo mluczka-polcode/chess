@@ -19,7 +19,12 @@ chess_checkGameState:
     pattern:  /chess/checkGameState/{tableId}/{player}
     defaults: { _controller: AcmeChessBundle:Default:checkGameState }
 
-chess_proposeTie:
-    pattern:  /chess/proposeTie/{tableId}/{player}
-    defaults: { _controller: AcmeChessBundle:Default:proposeTie }
+chess_tieProposal:
+    pattern:  /chess/tieProposal/{tableId}/{player}
+    defaults: { _controller: AcmeChessBundle:Default:tieProposal }
+    methods:  [POST]
+
+chess_surrender:
+    pattern:  /chess/surrender/{tableId}/{player}
+    defaults: { _controller: AcmeChessBundle:Default:surrender }
     methods:  [POST]

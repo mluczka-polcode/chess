@@ -10,6 +10,7 @@
         var chessGamestate = {{ gamestate | json_encode | raw }};
     </script>
     <script src="{{ asset('bundles/chess/angular.min.js') }}"></script>
+    <script src="{{ asset('bundles/chess/angular-sanitize.min.js') }}"></script>
     <script src="{{ asset('bundles/chess/app.js') }}"></script>
     <script src="{{ asset('bundles/chess/game.js') }}"></script>
 {% endblock %}
@@ -30,14 +31,42 @@
                 <span class="tile {% verbatim %}{{ tile }}{% endverbatim %}" ng-if="tile!='_'"></span>
             </td>
         </tr>
+        <tr>
+            <td colspan="8" class="statusBar">
+                <br />
+                <p class="status" ng-bind-html="game.getStatusInfo();"></p>
+                <br />
+                <p class="tieProposal" ng-if="game.canAcceptTie()">
+                    Your opponent proposed a tie.<br />
+                    <button ng-click="game.answerTieProposal(true);">accept</button>
+                    &nbsp;
+                    <button ng-click="game.answerTieProposal(false);">reject</button>
+                </p>
+                <p class="tieProposal" ng-if="game.canCancelTie()">
+                    You proposed a tie.<br />
+                    <button ng-click="game.cancelTieProposal();">cancel</button>
+                </p>
+                <p class="tieProposal" ng-if="game.opponentRejectedTie()">
+                    Your tie proposal has been rejected.
+                </p>
+                <span ng-if="game.canProposeTie()">
+                    <button ng-click="game.proposeTie();">propose a tie</button>&nbsp;|&nbsp;
+                </span>
+                <button ng-if="game.state.status=='in_progress'" ng-click="game.surrender();">surrender</button>
+            </td>
+        </tr>
     </table>
-    <p>current player: <b ng-bind="game.state.currentPlayer"></b></p>
-    <p>game status: <b ng-bind="game.state.status"></b></p>
-    <!--<p>tie: <b ng-bind="game.state.tieProposal"></b></p>-->
-    <p>castlings: white <b ng-bind="game.state.castlings.white"></b>, black <b ng-bind="game.state.castlings.black"></b></p>
-    <!--<a href="{{ path('chess_proposeTie', {'tableId': gamestate.tableId, 'player': gamestate.color }) }}">propose a tie</a>-->
-    <ol id="chessLog">
+    <ol id="chessLog" ng-if="game.state.log">
         <li ng-repeat="move in game.state.log" ng-bind="move"></li>
     </ol>
+    <div id="advanceDialog" ng-if="game.showAdvanceDialog">
+        Advance pawn to:<br />
+        <button ng-click="game.advancePawnTo('q');">Queen</button><br />
+        <button ng-click="game.advancePawnTo('r');">Rook</button><br />
+        <button ng-click="game.advancePawnTo('b');">Bishop</button><br />
+        <button ng-click="game.advancePawnTo('k');">Knight</button><br />
+        <br />
+        <button ng-click="game.closeAdvanceDialog();">cancel</button>
+    </div>
 </div>
 {% endblock %}

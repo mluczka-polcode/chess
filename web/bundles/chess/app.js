@@ -1,6 +1,6 @@
 'use strict';
 
-var chessApp = angular.module('chessApp', []);
+var chessApp = angular.module('chessApp', ['ngSanitize']);
 
 chessApp.filter('reverse', function() {
     return function(items) {

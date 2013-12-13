@@ -3,7 +3,9 @@
 html { text-align: center; background: #EEE; }
 body { width: 800px; margin: 0 auto; padding: 20px; text-align: left; background: #FFF; }
 
-#chessboard { margin: 20px auto; border: 2px solid #666; border-collapse: collapse; }
+button { font-weight: bold; border: none; color: #00F; background: none; cursor: pointer; }
+
+#chessboard { margin: 20px auto; border-collapse: collapse; }
 #chessboard td { width: 50px; height: 50px; text-align: center; vertical-align: middle; border: 1px solid #666; }
 #chessboard tr:nth-child(odd) td:nth-child(even) { background: #CCC; }
 #chessboard tr:nth-child(even) td:nth-child(odd) { background: #CCC; }
@@ -11,6 +13,9 @@ body { width: 800px; margin: 0 auto; padding: 20px; text-align: left; background
 #chessboard td.checked  { background: #EAA !important; }
 #chessboard td.selected { background: #0C0 !important; }
 #chessboard td.avail { background: #ADA !important; }
+#chessboard td.statusBar { border: none; }
+
+.tieProposal { width: 220px; margin: 0 auto 10px auto; padding: 10px; border: 1px solid #666; }
 
 #chessboard .tile { display: block; width: 50px; height: 50px; background: url(TileSet.png); }
 
@@ -29,3 +34,8 @@ body { width: 800px; margin: 0 auto; padding: 20px; text-align: left; background
 #chessboard .tile.x { background-position:    2px -47px; }
 
 #chessLog { width: 150px; margin: 0 auto; font-family: monospace; }
+
+#advanceDialog { position: absolute; top: 245px; padding: 20px; margin-left: 315px; font-weight: bold; border: 1px solid #000; background: #FFF; }
+
+.positive { color: #090; }
+.negative { color: #F00; }

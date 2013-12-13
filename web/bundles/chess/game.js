@@ -23,6 +23,10 @@ var ChessGame = function(gameState) {
 
     self.$http = null;
 
+    self.showAdvanceDialog = false;
+    self.moveToX = null;
+    self.moveToY = null;
+
     self.init = function() {
         clearTimeout(checkStateTimer);
         if(self.state.status == 'in_progress')
@@ -32,6 +36,8 @@ var ChessGame = function(gameState) {
     };
 
     self.onfieldclick = function(x, y) {
+        self.closeAdvanceDialog();
+
         if(self.state.currentPlayer != self.state.color || self.state.status != 'in_progress')
         {
             return false;
@@ -83,6 +89,138 @@ var ChessGame = function(gameState) {
         }
 
         return classes.join(' ');
+    };
+
+    self.getStatusInfo = function() {
+        if(self.state.status == 'in_progress')
+        {
+            if(self.state.currentPlayer == self.state.color)
+            {
+                return '<b>YOUR TURN</b>';
+            }
+            else
+            {
+                return 'waiting for opponent move...';
+            }
+        }
+
+        if(self.state.status == 'tie')
+        {
+            return 'Game result: <b>TIE</b>';
+        }
+
+        if(self.state.status == self.state.color + '_won')
+        {
+            return 'Game result: <b class="positive">YOU WON</b>';
+        }
+
+        if(self.state.status == getOpponent(self.state.color) + '_won')
+        {
+            return 'Game result: <b class="negative">YOU LOST</b>';
+        }
+
+        return '...';
+    };
+
+    self.canProposeTie = function() {
+        if(self.state.status != 'in_progress' || self.state.tieProposal.indexOf('proposed') > 0)
+        {
+            return false;
+        }
+
+        return true;
+    };
+
+    self.canAcceptTie = function() {
+        if(self.state.status != 'in_progress')
+        {
+            return false;
+        }
+
+        return self.state.tieProposal == getOpponent(self.state.color) + ' proposed';
+    };
+
+    self.canCancelTie = function() {
+        if(self.state.status != 'in_progress')
+        {
+            return false;
+        }
+
+        return self.state.tieProposal == self.state.color + ' proposed';
+    };
+
+    self.proposeTie = function() {
+        if(self.state.status != 'in_progress' || self.state.tieProposal == self.state.color + ' proposed')
+        {
+            return;
+        }
+
+        if(!confirm('Are you sure?'))
+        {
+            return;
+        }
+
+        updateTieProposal('propose');
+    };
+
+    self.answerTieProposal = function(accept) {
+        if(!confirm('Are you sure?'))
+        {
+            return;
+        }
+
+        var message = accept ? 'accept' : 'reject';
+        updateTieProposal(message);
+    };
+
+    self.cancelTieProposal = function() {
+        if(!confirm('Are you sure?'))
+        {
+            return;
+        }
+
+        updateTieProposal('cancel');
+    };
+
+    self.opponentRejectedTie = function() {
+        return self.state.tieProposal == self.state.color + ' rejected';
+    };
+
+    self.surrender = function() {
+        if(!confirm('Are you sure?'))
+        {
+            return;
+        }
+
+        self.$http({
+            'method': 'POST',
+            'url': ajaxUrl + 'surrender/' + self.state.tableId + '/' + self.state.color,
+            'headers': {'Content-Type': 'application/x-www-form-urlencoded'}
+        }).
+        error(function(data, status, headers, config) {
+            alert(data);
+        });
+    };
+
+    self.closeAdvanceDialog = function() {
+        self.showAdvanceDialog = false;
+    };
+
+    self.advancePawnTo = function(tile) {
+        self.closeAdvanceDialog();
+        moveSelectedTile(self.moveToX, self.moveToY, tile);
+    };
+
+    var updateTieProposal = function(message) {
+        self.$http({
+            'method': 'POST',
+            'url': ajaxUrl + 'tieProposal/' + self.state.tableId + '/' + self.state.color,
+            'data': 'message=' + message,
+            'headers': {'Content-Type': 'application/x-www-form-urlencoded'}
+        }).
+        error(function(data, status, headers, config) {
+            alert(data);
+        });
     };
 
     var getPossibleMoves = function(x, y) {
@@ -183,21 +321,22 @@ var ChessGame = function(gameState) {
         return cells[x + (BOARD_SIZE * y)];
     };
 
-    var moveSelectedTile = function(x, y) {
+    var moveSelectedTile = function(x, y, advancePawnTo) {
+        var tile = self.state.position[selectedTile.y][selectedTile.x].toLowerCase();
+        if(tile == 'p' && y == 7 && !advancePawnTo)
+        {
+            openAdvanceDialog(x, y);
+            return;
+        }
+
         blockRefresh = true;
 
-        var url = ajaxUrl + 'moveTile/' + self.state.tableId;
-        var moveData = {
-            'fromX' : selectedTile.x,
-            'fromY' : selectedTile.y,
-            'toX'   : x,
-            'toY'   : y
-        };
+        var postData = 'fromX=' + selectedTile.x + '&fromY=' + selectedTile.y + '&toX=' + x + '&toY=' + y + '&advancePawnTo=' + advancePawnTo;
 
         self.$http({
             'method': 'POST',
-            'url': url,
-            'data': 'fromX=' + selectedTile.x + '&fromY=' + selectedTile.y + '&toX=' + x + '&toY=' + y,
+            'url': ajaxUrl + 'moveTile/' + self.state.tableId,
+            'data': postData,
             'headers': {'Content-Type': 'application/x-www-form-urlencoded'}
         }).success(function(data, status, headers, config) {
             blockRefresh = false;
@@ -212,15 +351,18 @@ var ChessGame = function(gameState) {
         });
     };
 
+    var openAdvanceDialog = function(x, y) {
+        self.showAdvanceDialog = true;
+        self.moveToX = x;
+        self.moveToY = y;
+    };
+
     var switchPlayer = function() {
-        if(self.state.currentPlayer == 'black')
-        {
-            self.state.currentPlayer = 'white';
-        }
-        else
-        {
-            self.state.currentPlayer = 'black';
-        }
+        self.state.currentPlayer = getOpponent(self.state.currentPlayer);
+    };
+
+    var getOpponent = function(player) {
+        return player == 'black' ? 'white' : 'black';
     };
 
     var checkGameState = function() {

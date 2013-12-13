@@ -79,18 +79,6 @@ class Game
     /** @PostLoad */
     public function onLoad()
     {
-// $position = $this->getPosition();
-// foreach($position as &$row)
-// {
-//     foreach($row as &$field)
-//     {
-//         $field = '_';
-//     }
-// }
-// $position[0][0] = 'X';
-// $position[7][7] = 'x';
-// $this->setPosition($position);
-
         $this->board = new Chessboard();
         $this->board->setPosition($this->getPosition());
         $this->board->setLastMove($this->getLastMove());
@@ -195,11 +183,18 @@ class Game
     public function getLog()
     {
         $result = array();
+
+        if($this->log=='')
+        {
+            return $result;
+        }
+
         $log = explode("\n", str_replace("\r", '', trim($this->log)));
         for($i = 0; $i < count($log); $i += 2)
         {
             $result[] = $log[$i] . (!empty($log[$i + 1]) ? ' ' . $log[$i + 1] : '');
         }
+
         return $result;
     }
 
@@ -254,9 +249,9 @@ class Game
      * @param string $status
      * @return Game
      */
-    public function setTieProposal($player, $status = 'proposed')
+    public function setTieProposal($proposal)
     {
-        $this->tieProposal = $player . ' ' . $status;
+        $this->tieProposal = $proposal;
 
         return $this;
     }
@@ -403,16 +398,16 @@ class Game
         );
     }
 
-    public function moveTile($fromX, $fromY, $toX, $toY)
+    public function moveTile($params)
     {
         if($this->getStatus() != 'in_progress')
         {
-            throw new ChessException('Game already finished', ChessException::INVALID_PARAMS);
+            throw new ChessException('Game already finished', ChessException::INVALID_INPUT);
         }
 
-        list($coordsFrom, $coordsTo) = $this->parseMoveCoords($fromX, $fromY, $toX, $toY);
+        list($coordsFrom, $coordsTo) = $this->parseMoveCoords($params);
 
-        $this->board->move($coordsFrom, $coordsTo);
+        $this->board->move($coordsFrom, $coordsTo, $params['advancePawnTo']);
 
         $this->setPosition($this->board->getPosition());
         $this->setCastlings($this->board->getCastlings());
@@ -450,24 +445,68 @@ class Game
         $this->log .= "\n";
     }
 
-    private function parseMoveCoords($fromX, $fromY, $toX, $toY)
+    public function updateTieProposal($player, $message)
+    {
+        if($this->getStatus() != 'in_progress')
+        {
+            return;
+        }
+
+        $proposal = $this->getTieProposal();
+
+        if($proposal == $this->getOpponent($player) . ' proposed')
+        {
+            if(in_array($message, array('propose', 'accept')))
+            {
+                $proposal = str_replace('proposed', 'accepted', $proposal);
+                $this->setStatus('tie');
+            }
+            else
+            {
+                $proposal = str_replace('proposed', 'rejected', $proposal);
+            }
+        }
+        elseif($proposal == $player . ' proposed' && $message == 'cancel')
+        {
+            $proposal = '';
+        }
+        elseif($proposal == '' && $message == 'propose')
+        {
+            $proposal = $player . ' proposed';
+        }
+
+        $this->setTieProposal($proposal);
+    }
+
+    public function surrender($player)
+    {
+        if($this->getStatus() != 'in_progress')
+        {
+            return false;
+        }
+
+        $status = $this->getOpponent() . '_won';
+        $this->setStatus($status);
+    }
+
+    private function parseMoveCoords($params)
     {
         if($this->getCurrentPlayer() == self::PLAYER_BLACK)
         {
-            $fromX = $this->getReverseCoord($fromX);
-            $fromY = $this->getReverseCoord($fromY);
-            $toX = $this->getReverseCoord($toX);
-            $toY = $this->getReverseCoord($toY);
+            $params['fromX'] = $this->getReverseCoord($params['fromX']);
+            $params['fromY'] = $this->getReverseCoord($params['fromY']);
+            $params['toX'] = $this->getReverseCoord($params['toX']);
+            $params['toY'] = $this->getReverseCoord($params['toY']);
         }
 
         $coordsFrom = array(
-            'x' => $fromX,
-            'y' => $fromY,
+            'x' => $params['fromX'],
+            'y' => $params['fromY'],
         );
 
         $coordsTo = array(
-            'x' => $toX,
-            'y' => $toY,
+            'x' => $params['toX'],
+            'y' => $params['toY'],
         );
 
         return array($coordsFrom, $coordsTo);
@@ -541,14 +580,16 @@ class Game
 
     private function switchPlayer()
     {
-        if($this->getCurrentPlayer() == self::PLAYER_WHITE)
+        $this->setCurrentPlayer($this->getOpponent());
+    }
+
+    private function getOpponent($player = null)
+    {
+        if(!$player)
         {
-            $this->setCurrentPlayer(self::PLAYER_BLACK);
+            $player = $this->getCurrentPlayer();
         }
-        else
-        {
-            $this->setCurrentPlayer(self::PLAYER_WHITE);
-        }
+        return $player == self::PLAYER_WHITE ? self::PLAYER_BLACK : self::PLAYER_WHITE;
     }
 
     private function convertLetterToNumber($letter)

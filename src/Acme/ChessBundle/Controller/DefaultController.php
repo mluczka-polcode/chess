@@ -50,19 +50,13 @@ class DefaultController extends Controller
 
     public function moveTileAction($tableId)
     {
-        $request = $this->get('request');
-
-        $fromX = $request->get('fromX');
-        $fromY = $request->get('fromY');
-        $toX = $request->get('toX');
-        $toY = $request->get('toY');
-
-//         print_r($request->all());
+        $params = $this->get('request')->request->all();
 
         $game = $this->getGame($tableId);
         $player = $game->getCurrentPlayer();
 
-        $game->moveTile($fromX, $fromY, $toX, $toY);
+        $game->moveTile($params);
+        $game->setTieProposal('');
 
         $this->save($game);
 
@@ -75,10 +69,23 @@ class DefaultController extends Controller
         return new JsonResponse($game->getGameState($player));
     }
 
-    public function proposeTieAction($tableId, $player)
+    public function tieProposalAction($tableId, $player)
+    {
+        $request = $this->get('request');
+        $message = $request->get('message');
+
+        $game = $this->getGame($tableId);
+        $game->updateTieProposal($player, $message);
+
+        $this->save($game);
+
+        return new Response('ok');
+    }
+
+    public function surrenderAction($tableId, $player)
     {
         $game = $this->getGame($tableId);
-        $game->setTieProposal($player);
+        $game->surrender($player);
 
         $this->save($game);
 

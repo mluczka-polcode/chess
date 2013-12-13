@@ -96,9 +96,9 @@ class King extends Tile
 
     protected function afterMove()
     {
-        $castlings = $this->board->getCastlings();
-        $castlings[$this->getOwner()] = 'none';
-        $this->board->setCastlings($castlings);
+        $player = $this->getOwner();
+        $this->board->blockCastling($player, 'short');
+        $this->board->blockCastling($player, 'long');
     }
 
     protected function updateMoveLog()

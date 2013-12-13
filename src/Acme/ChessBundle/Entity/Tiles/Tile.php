@@ -97,7 +97,7 @@ abstract class Tile
     {
         if(!in_array($this->getDestination(), $this->getMoves()))
         {
-            throw new ChessException('Invalid move', 1);
+            throw new ChessException('Invalid move', ChessException::INVALID_INPUT);
         }
     }
 

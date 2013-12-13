@@ -92,7 +92,18 @@ class Pawn extends Tile
 
         if($toY == $this->board->getLastLine($this->getOwner()))
         {
-            $this->position[$toY][$toX] = $this->board->isWhitePlayer($this->getOwner()) ? 'Q' : 'q';
+            $newTile = $this->board->getTileToAdvanceTo();
+            if(!$newTile)
+            {
+                $newTile = 'q';
+            }
+
+            if($this->board->isWhitePlayer($this->getOwner()))
+            {
+                $newTile = strtoupper($newTile);
+            }
+
+            $this->position[$toY][$toX] = $newTile;
             $this->position[$this->y][$this->x] = '_';
             return;
         }

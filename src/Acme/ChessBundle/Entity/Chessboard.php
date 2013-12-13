@@ -25,6 +25,8 @@ class Chessboard
 
     private $moveLog = '';
 
+    private $advancePawnTo;
+
     public function setPosition($position)
     {
         $this->position = $position;
@@ -104,14 +106,21 @@ class Chessboard
         return $moves;
     }
 
-    public function move($source, $destination)
+    public function move($source, $destination, $advancePawnTo = '')
     {
+        $this->advancePawnTo = $advancePawnTo;
+
         $tile = $this->getTileByCoords($source);
         $tile->move($destination);
 
         $this->setPosition($tile->getPosition());
         $this->updateCastlings();
         $this->setMoveLog($tile->getMoveLog());
+    }
+
+    public function getTileToAdvanceTo()
+    {
+        return $this->advancePawnTo;
     }
 
     public function isKingAttacked($player)
