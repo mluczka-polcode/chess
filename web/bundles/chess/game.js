@@ -117,7 +117,7 @@ var ChessGame = function(gameState) {
             return 'Game result: <b class="negative">YOU LOST</b>';
         }
 
-        return '...';
+        return '<span class="negative">invalid status: "' + self.state.status + '"</span>';
     };
 
     self.canProposeTie = function() {
@@ -313,12 +313,6 @@ var ChessGame = function(gameState) {
         return ( possibleMoves && possibleMoves.length ? true : false );
     };
 
-    var getCellByCoords = function(x, y) {
-        var cells = document.getElementById('chessboard').getElementsByTagName('td');
-        y = BOARD_SIZE - (y + 1);
-        return cells[x + (BOARD_SIZE * y)];
-    };
-
     var moveSelectedTile = function(x, y, advancePawnTo) {
         var tile = self.state.position[selectedTile.y][selectedTile.x].toLowerCase();
         if(tile == 'p' && y == 7 && !advancePawnTo)
@@ -349,10 +343,6 @@ var ChessGame = function(gameState) {
         self.showAdvanceDialog = true;
         self.moveToX = x;
         self.moveToY = y;
-    };
-
-    var switchPlayer = function() {
-        self.state.currentPlayer = getOpponent(self.state.currentPlayer);
     };
 
     var getOpponent = function(player) {

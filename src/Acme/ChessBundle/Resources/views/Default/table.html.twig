@@ -56,7 +56,7 @@
         </tr>
     </table>
     <ol id="chessLog" ng-if="game.state.log">
-        <li ng-repeat="move in game.state.log" ng-bind-html="move"></li>
+        <li ng-repeat="move in game.state.log track by $index" ng-bind-html="move"></li>
     </ol>
     <div id="advanceDialog" ng-if="game.showAdvanceDialog">
         Advance pawn to:<br />

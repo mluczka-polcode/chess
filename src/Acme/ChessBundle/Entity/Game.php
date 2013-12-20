@@ -491,6 +491,8 @@ class Game
             }
         }
 
+        $history .= ' '.$this->castlings;
+
         $history .= "\n";
 
         $this->setHistory($history);
@@ -507,7 +509,7 @@ class Game
 
     private function positionRepeatsCount()
     {
-        $count = 0;
+        $count = 1;
 
         $history = $this->getHistory();
         $history = substr($history, strrpos($history, "---\n") + strlen("---\n"));
@@ -522,7 +524,7 @@ class Game
             }
         }
 
-        echo 'positionRepeatsCount: ' . $count . "\n<br />";
+//         echo 'positionRepeatsCount: ' . $count . "\n<br />";
         return $count;
     }
 
@@ -531,7 +533,7 @@ class Game
         $history = $this->getHistory();
         $history = substr($history, strrpos($history, "---\n") + strlen("---\n"));
         $history = explode("\n", trim($history));
-        echo 'reversibleMovesCount: ' . count($history) . "\n<br />";
+//         echo 'reversibleMovesCount: ' . count($history) . "\n<br />";
         return count($history);
     }
 

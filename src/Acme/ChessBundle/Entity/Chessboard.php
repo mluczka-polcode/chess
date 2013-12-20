@@ -326,7 +326,14 @@ class Chessboard
     public function blockCastling($player, $direction)
     {
         $castlings = $this->getCastlings();
-        $castlings[$player] = $castlings[$player] == 'both' ? $this->oppositeCastling($direction) : 'none';
+        if($castlings[$player] == 'both')
+        {
+            $castlings[$player] = $this->oppositeCastling($direction);
+        }
+        elseif($castlings[$player] == $direction)
+        {
+            $castlings[$player] = 'none';
+        }
         $this->setCastlings($castlings);
     }
 
